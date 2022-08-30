@@ -1,0 +1,7 @@
+add_executable( gct-subgroup gct.cpp )
+target_compile_definitions( gct-subgroup PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+add_executable( vulkan_hpp-subgroup vulkan_hpp.cpp )
+target_compile_definitions( vulkan_hpp-subgroup PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+add_executable( vulkan-subgroup vulkan.cpp )
+target_compile_definitions( vulkan-subgroup PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+add_shader( gct-subgroup shader.comp )

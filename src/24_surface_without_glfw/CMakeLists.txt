@@ -1,0 +1,6 @@
+add_executable( vulkan_hpp-surface_without_glfw vulkan_hpp.cpp )
+target_include_directories( vulkan_hpp-surface_without_glfw PRIVATE ${LIBXCB_INCLUDE_DIRS} )
+target_link_libraries( vulkan_hpp-surface_without_glfw ${LIBXCB_LIBRARY} )
+add_executable( vulkan-surface_without_glfw vulkan.cpp )
+target_include_directories( vulkan-surface_without_glfw PRIVATE ${LIBXCB_INCLUDE_DIRS} )
+target_link_libraries( vulkan-surface_without_glfw ${LIBXCB_LIBRARY} )

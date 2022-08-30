@@ -1,0 +1,11 @@
+add_executable( gct-image gct.cpp )
+target_compile_definitions( gct-image PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+target_compile_definitions( gct-image PRIVATE -DCMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}" )
+add_executable( vulkan_hpp-image vulkan_hpp.cpp )
+target_compile_definitions( vulkan_hpp-image PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+target_compile_definitions( vulkan_hpp-image PRIVATE -DCMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}" )
+add_executable( vulkan-image vulkan.cpp )
+target_compile_definitions( vulkan-image PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+target_compile_definitions( vulkan-image PRIVATE -DCMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}" )
+add_shader( gct-image shader.comp )
+

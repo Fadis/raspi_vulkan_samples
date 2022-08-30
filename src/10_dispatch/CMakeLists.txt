@@ -1,0 +1,7 @@
+add_executable( gct-dispatch gct.cpp )
+target_compile_definitions( gct-dispatch PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+add_executable( vulkan_hpp-dispatch vulkan_hpp.cpp )
+target_compile_definitions( vulkan_hpp-dispatch PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+add_executable( vulkan-dispatch vulkan.cpp )
+target_compile_definitions( vulkan-dispatch PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+add_shader( gct-dispatch shader.comp )

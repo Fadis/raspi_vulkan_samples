@@ -1,0 +1,7 @@
+add_executable( gct-shared_memory gct.cpp )
+target_compile_definitions( gct-shared_memory PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+add_executable( vulkan_hpp-shared_memory vulkan_hpp.cpp )
+target_compile_definitions( vulkan_hpp-shared_memory PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+add_executable( vulkan-shared_memory vulkan.cpp )
+target_compile_definitions( vulkan-shared_memory PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+add_shader( gct-shared_memory shader.comp )

@@ -1,0 +1,7 @@
+add_executable( gct-push_constant gct.cpp )
+target_compile_definitions( gct-push_constant PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+add_executable( vulkan_hpp-push_constant vulkan_hpp.cpp )
+target_compile_definitions( vulkan_hpp-push_constant PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+add_executable( vulkan-push_constant vulkan.cpp )
+target_compile_definitions( vulkan-push_constant PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+add_shader( gct-push_constant shader.comp )

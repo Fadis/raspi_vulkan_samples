@@ -1,0 +1,6 @@
+add_executable( vulkan_hpp-draw_on_window vulkan_hpp.cpp )
+target_compile_definitions( vulkan_hpp-draw_on_window PRIVATE -DCMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}" )
+add_executable( vulkan-draw_on_window vulkan.cpp )
+target_compile_definitions( vulkan-draw_on_window PRIVATE -DCMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}" )
+add_executable( gct-draw_on_window gct.cpp )
+target_compile_definitions( gct-draw_on_window PRIVATE -DCMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}" )

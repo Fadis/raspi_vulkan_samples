@@ -1,0 +1,7 @@
+add_executable( gct-barrier gct.cpp )
+target_compile_definitions( gct-barrier PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+add_executable( vulkan_hpp-barrier vulkan_hpp.cpp )
+target_compile_definitions( vulkan_hpp-barrier PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+add_executable( vulkan-barrier vulkan.cpp )
+target_compile_definitions( vulkan-barrier PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+add_shader( gct-barrier shader.comp )

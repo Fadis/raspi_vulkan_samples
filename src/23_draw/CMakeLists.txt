@@ -1,0 +1,8 @@
+add_executable( gct-draw gct.cpp )
+target_compile_definitions( gct-draw PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+add_executable( vulkan_hpp-draw vulkan_hpp.cpp )
+target_compile_definitions( vulkan_hpp-draw PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+add_executable( vulkan-draw vulkan.cpp )
+target_compile_definitions( vulkan-draw PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+add_shader( gct-draw shader.vert )
+add_shader( gct-draw shader.frag )

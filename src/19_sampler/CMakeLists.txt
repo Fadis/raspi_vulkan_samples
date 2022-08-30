@@ -1,0 +1,11 @@
+add_executable( gct-sampler gct.cpp )
+target_compile_definitions( gct-sampler PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+target_compile_definitions( gct-sampler PRIVATE -DCMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}" )
+add_executable( vulkan_hpp-sampler vulkan_hpp.cpp )
+target_compile_definitions( vulkan_hpp-sampler PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+target_compile_definitions( vulkan_hpp-sampler PRIVATE -DCMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}" )
+add_executable( vulkan-sampler vulkan.cpp )
+target_compile_definitions( vulkan-sampler PRIVATE -DCMAKE_CURRENT_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
+target_compile_definitions( vulkan-sampler PRIVATE -DCMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}" )
+add_shader( gct-sampler shader.comp )
+
