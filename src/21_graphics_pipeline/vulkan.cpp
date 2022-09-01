@@ -97,14 +97,14 @@ int main( int argc, const char *argv[] ) {
         .rebuild_chain()
   );
 
-  const auto instance = **gct_instance;
-  const auto physical_device = **gct_physical_device.devices[ 0 ];
-  const auto device = **gct_device;
-  const auto vs = **gct_vs;
-  const auto fs = **gct_fs;
-  const auto descriptor_set_layout = **gct_descriptor_set_layout;
-  const auto pipeline_cache = **gct_pipeline_cache;
-  const auto pipeline_layout = **gct_pipeline_layout;
+  const auto instance = VkInstance( **gct_instance );
+  const auto physical_device = VkPhysicalDevice( **gct_physical_device.devices[ 0 ] );
+  const auto device = VkDevice( **gct_device );
+  const auto vs = VkShaderModule( **gct_vs );
+  const auto fs = VkShaderModule( **gct_fs );
+  const auto descriptor_set_layout = VkDescriptorSetLayout( **gct_descriptor_set_layout );
+  const auto pipeline_cache = VkPipelineCache( **gct_pipeline_cache );
+  const auto pipeline_layout = VkPipelineLayout( **gct_pipeline_layout );
 
   std::vector< VkAttachmentDescription > attachments( 2 );
   // 色を出力するアタッチメントを追加

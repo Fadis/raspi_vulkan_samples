@@ -86,13 +86,13 @@ int main( int argc, const char *argv[] ) {
   );
   
   const auto gct_descriptor_set = descriptor_pool->allocate( descriptor_set_layout );
-  const auto descriptor_set = **gct_descriptor_set;
+  const auto descriptor_set = VkDescriptorSet( **gct_descriptor_set );
 
   const auto gct_pipeline_layout = device->get_pipeline_layout(
     gct::pipeline_layout_create_info_t()
       .add_descriptor_set_layout( descriptor_set_layout )
   );
-  const auto pipeline_layout = **gct_pipeline_layout;
+  const auto pipeline_layout = VkPipelineLayout( **gct_pipeline_layout );
 
   const auto gct_render_pass = device->get_render_pass(
     gct::render_pass_create_info_t()
@@ -125,7 +125,7 @@ int main( int argc, const char *argv[] ) {
           .rebuild_chain()
       )
     );
-  const auto render_pass = **gct_render_pass;
+  const auto render_pass = VkRenderPass( **gct_render_pass );
 
   const auto pipeline_cache = device->get_pipeline_cache();
 
@@ -238,7 +238,7 @@ int main( int argc, const char *argv[] ) {
       .set_layout( gct_pipeline_layout )
       .set_render_pass( gct_render_pass, 0 )
   );
-  const auto pipeline = **gct_pipeline;
+  const auto pipeline = VkPipeline( **gct_pipeline );
   
   const auto allocator = device->get_allocator();
 
@@ -294,10 +294,10 @@ int main( int argc, const char *argv[] ) {
       .add_attachment( color_view )
       .add_attachment( depth_view )
   );
-  const auto framebuffer = **gct_framebuffer;
+  const auto framebuffer = VkFramebuffer( **gct_framebuffer );
 
   const auto gct_command_buffer = queue->get_command_pool()->allocate();
-  const auto command_buffer = **gct_command_buffer;
+  const auto command_buffer = VkCommandBuffer( **gct_command_buffer );
   std::shared_ptr< gct::buffer_t > gct_vertex_buffer;
   {
     auto rec = gct_command_buffer->begin();
@@ -318,7 +318,7 @@ int main( int argc, const char *argv[] ) {
       sizeof( float ) * vertex.size(),
       vk::BufferUsageFlagBits::eVertexBuffer
     );
-    const auto vertex_buffer = **gct_vertex_buffer;
+    const auto vertex_buffer = VkBuffer( **gct_vertex_buffer );
 
     rec.barrier(
       vk::AccessFlagBits::eTransferWrite,
@@ -389,7 +389,6 @@ int main( int argc, const char *argv[] ) {
 
     // この頂点バッファを使う
     // binding 0番がvertex_bufferの内容になる
-    VkBuffer raw_vertex_buffer = vertex_buffer;
     VkDeviceSize vertex_buffer_offset = 0;
     vkCmdBindVertexBuffers(
       command_buffer,
@@ -398,11 +397,10 @@ int main( int argc, const char *argv[] ) {
       // 1個の頂点バッファを
       1,
       // これにする
-      &raw_vertex_buffer,
+      &vertex_buffer,
       // バッファの先頭から使う
       &vertex_buffer_offset
     );
-    rec->bindVertexBuffers( 0, { vertex_buffer }, { 0 } );
 
     // パイプラインを実行する
     //

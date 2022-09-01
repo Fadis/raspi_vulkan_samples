@@ -89,7 +89,7 @@ int main( int argc, const char *argv[] ) {
     }
   );
 
-  auto surface = window.get_surface( *groups[ 0 ].devices[ 0 ] );
+  auto gct_surface = window.get_surface( *groups[ 0 ].devices[ 0 ] );
  
   std::vector< gct::queue_requirement_t > queue_requirements{
     gct::queue_requirement_t{
@@ -99,7 +99,7 @@ int main( int argc, const char *argv[] ) {
 #ifdef VK_EXT_GLOBAL_PRIORITY_EXTENSION_NAME
       vk::QueueGlobalPriorityEXT(),
 #endif
-      { **surface },
+      { **gct_surface },
       vk::CommandPoolCreateFlagBits::eResetCommandBuffer
     }
   };
@@ -109,7 +109,7 @@ int main( int argc, const char *argv[] ) {
   );
   const auto queue = device->get_queue( 0u );
 
-  const auto swapchain = device->get_swapchain( surface );
+  const auto swapchain = device->get_swapchain( gct_surface );
   const auto swapchain_images = swapchain->get_images();
 
   const auto descriptor_pool = device->get_descriptor_pool(
@@ -131,7 +131,7 @@ int main( int argc, const char *argv[] ) {
   );
   
   const auto render_pass = device->get_render_pass(
-    gct::select_simple_surface_format( surface->get_caps().get_formats() ).basic.format,
+    gct::select_simple_surface_format( gct_surface->get_caps().get_formats() ).basic.format,
     vk::Format::eD16Unorm
   );
 
@@ -192,13 +192,13 @@ int main( int argc, const char *argv[] ) {
   );
   
   const auto gct_descriptor_set = descriptor_pool->allocate( descriptor_set_layout );
-  const auto descriptor_set = **gct_descriptor_set;
+  const auto descriptor_set = VkDescriptorSet( **gct_descriptor_set );
 
   const auto gct_pipeline_layout = device->get_pipeline_layout(
     gct::pipeline_layout_create_info_t()
       .add_descriptor_set_layout( descriptor_set_layout )
   );
-  const auto pipeline_layout = **gct_pipeline_layout;
+  const auto pipeline_layout = VkPipelineLayout( **gct_pipeline_layout );
 
   const auto [vistat,vamap,stride] = get_vertex_attributes(
     *device,
@@ -233,7 +233,7 @@ int main( int argc, const char *argv[] ) {
     );
     command_buffer->wait_for_executed();
   }
-  const auto vertex_buffer = **gct_vertex_buffer;
+  const auto vertex_buffer = VkBuffer( **gct_vertex_buffer );
 
   const auto viewport =
     gct::pipeline_viewport_state_create_info_t()
@@ -318,16 +318,16 @@ int main( int argc, const char *argv[] ) {
       .set_layout( gct_pipeline_layout )
       .set_render_pass( render_pass, 0 )
   );
-  const auto pipeline = **gct_pipeline;
+  const auto pipeline = VkPipeline( **gct_pipeline );
 
   uint32_t current_frame = 0u;
   while( !close_app ) {
     const auto begin_time = std::chrono::high_resolution_clock::now();
     if( !iconified ) {
       auto &sync = framebuffers[ current_frame ];
-      const auto image_acquired = **sync.image_acquired;
-      const auto draw_complete = **sync.draw_complete;
-      const auto command_buffer = **sync.command_buffer;
+      const auto image_acquired = VkSemaphore( **sync.image_acquired );
+      const auto draw_complete = VkSemaphore( **sync.draw_complete );
+      const auto command_buffer = VkCommandBuffer( **sync.command_buffer );
       sync.command_buffer->wait_for_executed();
       auto image_index = swapchain->acquire_next_image( sync.image_acquired );
       auto &fb = framebuffers[ image_index ];

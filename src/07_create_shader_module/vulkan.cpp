@@ -43,9 +43,9 @@ int main( int argc, const char *argv[] ) {
         },
         gct::device_create_info_t()
       );
-  const auto instance = **gct_instance;
-  const auto physical_device = **gct_physical_device.devices[ 0 ];
-  const auto device = **gct_device;
+  const auto instance = VkInstance( **gct_instance );
+  const auto physical_device = VkPhysicalDevice( **gct_physical_device.devices[ 0 ] );
+  const auto device = VkDevice( **gct_device );
 
   // ファイルからSPIR-Vを読む
   std::fstream file( CMAKE_CURRENT_BINARY_DIR "/shader.comp.spv", std::ios::in|std::ios::binary );

@@ -60,11 +60,11 @@ int main( int argc, const char *argv[] ) {
       .add_binding( gct_shader->get_props().get_reflection() )
       .rebuild_chain()
   );
-  const auto instance = **gct_instance;
-  const auto physical_device = **gct_physical_device.devices[ 0 ];
-  const auto device = **gct_device;
-  const auto shader = **gct_shader;
-  const auto descriptor_set_layout = **gct_descriptor_set_layout;
+  const auto instance = VkInstance( **gct_instance );
+  const auto physical_device = VkPhysicalDevice( **gct_physical_device.devices[ 0 ] );
+  const auto device = VkDevice( **gct_device );
+  const auto shader = VkShaderModule( **gct_shader );
+  const auto descriptor_set_layout = VkDescriptorSetLayout( **gct_descriptor_set_layout );
 
   // パイプラインレイアウトを作る
   VkDescriptorSetLayout descriptor_set_layout_ = descriptor_set_layout;

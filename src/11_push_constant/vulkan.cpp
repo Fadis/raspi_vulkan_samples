@@ -119,15 +119,15 @@ int main( int argc, const char *argv[] ) {
         )
     }
   );
-  const auto instance = **gct_instance;
-  const auto physical_device = **gct_physical_device.devices[ 0 ];
-  const auto device = **gct_device;
-  const auto descriptor_set = **gct_descriptor_set;
-  const auto queue = **gct_queue;
+  const auto instance = VkInstance( **gct_instance );
+  const auto physical_device = VkPhysicalDevice( **gct_physical_device.devices[ 0 ] );
+  const auto device = VkDevice( **gct_device );
+  const auto descriptor_set = VkDescriptorSet( **gct_descriptor_set );
+  const auto queue = VkQueue( **gct_queue );
   const auto queue_family_index = gct_queue->get_available_queue_family_index();
-  const auto descriptor_set_layout = **gct_descriptor_set_layout;
-  const auto shader = **gct_shader;
-  const auto pipeline_cache = **gct_pipeline_cache;
+  const auto descriptor_set_layout = VkDescriptorSetLayout( **gct_descriptor_set_layout );
+  const auto shader = VkShaderModule( **gct_shader );
+  const auto pipeline_cache = VkPipelineCache( **gct_pipeline_cache );
 
   VkPushConstantRange push_constant_range;
   // コンピュートシェーダで

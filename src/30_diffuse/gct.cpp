@@ -277,7 +277,7 @@ int main( int argc, const char *argv[] ) {
       vertex_buffer = recorder.load_buffer(
         allocator,
         host_vertex_buffer.data(),
-        sizeof( float ) * host_vertex_buffer.size(),
+        host_vertex_buffer.size(),
         vk::BufferUsageFlagBits::eVertexBuffer
       );
       recorder.barrier(

@@ -40,8 +40,8 @@ int main( int argc, const char *argv[] ) {
     VK_EXT_PIPELINE_CREATION_FEEDBACK_EXTENSION_NAME,
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
   } );
-  const auto instance = **gct_instance;
-  const auto physical_device = **gct_physical_device.devices[ 0 ];
+  const auto instance = VkInstance( **gct_instance );
+  const auto physical_device = VkPhysicalDevice( **gct_physical_device.devices[ 0 ] );
 
   const std::uint32_t width = 1024; 
   const std::uint32_t height = 1024; 

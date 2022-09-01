@@ -19,7 +19,7 @@ int main( int argc, const char *argv[] ) {
         )
     )
   );
-  auto instance = **gct_instance;
+  auto instance = VkInstance( **gct_instance );
   
   uint32_t device_count = 0u;
   if( vkEnumeratePhysicalDevices( instance, &device_count, nullptr ) != VK_SUCCESS )

@@ -42,8 +42,8 @@ int main( int argc, const char *argv[] ) {
         },
         gct::device_create_info_t()
       );
-  auto physical_device = **gct_physical_device.devices[ 0 ];
-  const auto device = **gct_device;
+  auto physical_device = VkPhysicalDevice( **gct_physical_device.devices[ 0 ] );
+  const auto device = VkDevice( **gct_device );
 
   VkPhysicalDeviceMemoryProperties memory_props;
   vkGetPhysicalDeviceMemoryProperties(

@@ -110,19 +110,19 @@ int main( int argc, const char *argv[] ) {
   const auto gct_pipeline_cache = gct_device->get_pipeline_cache();
   const auto gct_command_pool = gct_queue->get_command_pool();
   
-  const auto instance = **gct_instance;
-  const auto physical_device = **gct_physical_device.devices[ 0 ];
-  const auto device = **gct_device;
-  const auto queue = **gct_queue;
+  const auto instance = VkInstance( **gct_instance );
+  const auto physical_device = VkPhysicalDevice( **gct_physical_device.devices[ 0 ] );
+  const auto device = VkDevice( **gct_device );
+  const auto queue = VkQueue( **gct_queue );
   const auto queue_family_index = gct_queue->get_available_queue_family_index();
-  const auto descriptor_pool = **gct_descriptor_pool;
-  const auto shader = **gct_shader;
-  const auto descriptor_set_layout = **gct_descriptor_set_layout;
-  const auto descriptor_set = **gct_descriptor_set;
-  const auto pipeline_cache = **gct_pipeline_cache;
+  const auto descriptor_pool = VkDescriptorPool( **gct_descriptor_pool );
+  const auto shader = VkShaderModule( **gct_shader );
+  const auto descriptor_set_layout = VkDescriptorSetLayout( **gct_descriptor_set_layout );
+  const auto descriptor_set = VkDescriptorSet( **gct_descriptor_set );
+  const auto pipeline_cache = VkPipelineCache( **gct_pipeline_cache );
   const auto allocator = **gct_allocator;
-  const auto pipeline_layout = **gct_pipeline_layout;
-  const auto command_pool = **gct_command_pool;
+  const auto pipeline_layout = VkPipelineLayout( **gct_pipeline_layout );
+  const auto command_pool = VkCommandPool( **gct_command_pool );
 
   // パイプラインを作る
   const auto gct_pipeline = gct_pipeline_cache->get_pipeline(
@@ -141,7 +141,7 @@ int main( int argc, const char *argv[] ) {
       )
       .set_layout( gct_pipeline_layout )
   );
-  const auto pipeline = **gct_pipeline;
+  const auto pipeline = VkPipeline( **gct_pipeline );
 
   // 入力用のバッファを作る
   const auto gct_src_buffer = gct_allocator->create_buffer(
@@ -156,7 +156,7 @@ int main( int argc, const char *argv[] ) {
     // CPUからGPUに送るのに適した
     VMA_MEMORY_USAGE_CPU_TO_GPU
   );
-  const auto src_buffer = **gct_src_buffer;
+  const auto src_buffer = VkBuffer( **gct_src_buffer );
 
   // 入力用のイメージを作る
   auto gct_src_image = gct_allocator->create_image(
@@ -180,7 +180,7 @@ int main( int argc, const char *argv[] ) {
       // GPUから触れれば良い
       VMA_MEMORY_USAGE_GPU_ONLY
   );
-  const auto src_image = **gct_src_image;
+  const auto src_image = VkImage( **gct_src_image );
 
   // 出力用のバッファを作る
   const auto gct_dest_buffer = gct_allocator->create_buffer(
@@ -195,7 +195,7 @@ int main( int argc, const char *argv[] ) {
     // GPUからCPUに送るのに適した
     VMA_MEMORY_USAGE_GPU_TO_CPU
   );
-  const auto dest_buffer = **gct_dest_buffer;
+  const auto dest_buffer = VkBuffer( **gct_dest_buffer );
 
   // 出力用のイメージを作る
   auto gct_dest_image = gct_allocator->create_image(
@@ -219,7 +219,7 @@ int main( int argc, const char *argv[] ) {
       // GPUから触れれば良い
       VMA_MEMORY_USAGE_GPU_ONLY
   );
-  const auto dest_image = **gct_dest_image;
+  const auto dest_image = VkImage( **gct_dest_image );
 
   {
     using namespace OIIO_NAMESPACE;

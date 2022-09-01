@@ -39,9 +39,9 @@ int main( int argc, const char *argv[] ) {
         },
         gct::device_create_info_t()
       );
-  const auto instance = **gct_instance;
-  const auto physical_device = **gct_physical_device.devices[ 0 ];
-  const auto device = **gct_device;
+  const auto instance = VkInstance( **gct_instance );
+  const auto physical_device = VkPhysicalDevice( **gct_physical_device.devices[ 0 ] );
+  const auto device = VkDevice( **gct_device );
 
   // アロケータを作る
   VmaAllocatorCreateInfo allocator_create_info;

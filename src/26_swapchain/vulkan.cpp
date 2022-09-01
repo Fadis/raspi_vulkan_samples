@@ -55,7 +55,7 @@ int main( int argc, const char *argv[] ) {
   gct::glfw_window window( width, height, argc ? argv[ 0 ] : "my_application", false );
 
   const auto gct_surface = window.get_surface( *groups[ 0 ].devices[ 0 ] );
-  const auto surface = **gct_surface;
+  const auto surface = VkSurfaceKHR( **gct_surface );
 
   const auto gct_device = gct_physical_device.create_device(
     std::vector< gct::queue_requirement_t >{
@@ -66,20 +66,22 @@ int main( int argc, const char *argv[] ) {
 #ifdef VK_EXT_GLOBAL_PRIORITY_EXTENSION_NAME
         vk::QueueGlobalPriorityEXT(),
 #endif
-        { surface },
+        { **gct_surface },
         vk::CommandPoolCreateFlagBits::eResetCommandBuffer
       }
     },
     gct::device_create_info_t()
   );
-  const auto instance = **gct_instance;
-  const auto physical_device = **gct_physical_device.devices[ 0 ];
-  const auto device = **gct_device;
-  
-  
-  const auto surface_capabilities = physical_device.getSurfaceCapabilitiesKHR(
-    surface
-  );
+  const auto instance = VkInstance( **gct_instance );
+  const auto physical_device = VkPhysicalDevice( **gct_physical_device.devices[ 0 ] );
+  const auto device = VkDevice( **gct_device );
+ 
+  VkSurfaceCapabilitiesKHR surface_capabilities;
+  if( vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+    physical_device,
+    surface,
+    &surface_capabilities
+  ) != VK_SUCCESS ) std::abort(); 
  
   std::uint32_t available_format_count = 0u;
   if( vkGetPhysicalDeviceSurfaceFormatsKHR(

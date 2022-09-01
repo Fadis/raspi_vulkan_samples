@@ -59,8 +59,8 @@ int main( int argc, const char *argv[] ) {
     VK_KHR_SWAPCHAIN_MUTABLE_FORMAT_EXTENSION_NAME
   } );
   
-  const auto instance = **gct_instance;
-  const auto physical_device = **gct_physical_device.devices[ 0 ];
+  const auto instance = VkInstance( **gct_instance );
+  const auto physical_device = VkPhysicalDevice( **gct_physical_device.devices[ 0 ] );
   
   std::uint32_t width = 1024; 
   std::uint32_t height = 1024; 
@@ -75,7 +75,7 @@ int main( int argc, const char *argv[] ) {
   } );
 
   const auto gct_surface = window.get_surface( *groups[ 0 ].devices[ 0 ] );
-  const auto surface = **gct_surface; 
+  const auto surface = VkSurfaceKHR( **gct_surface ); 
   
   const auto gct_device = gct_physical_device.create_device(
     std::vector< gct::queue_requirement_t >{
@@ -86,7 +86,7 @@ int main( int argc, const char *argv[] ) {
 #ifdef VK_EXT_GLOBAL_PRIORITY_EXTENSION_NAME
         vk::QueueGlobalPriorityEXT(),
 #endif
-        { surface },
+        { **gct_surface },
         vk::CommandPoolCreateFlagBits::eResetCommandBuffer
       }
     },
@@ -95,18 +95,18 @@ int main( int argc, const char *argv[] ) {
  
   const auto gct_queue = gct_device->get_queue( 0u );
   const auto gct_allocator = gct_device->get_allocator();
-  const auto surface_capabilities = physical_device.getSurfaceCapabilitiesKHR(
-    surface
+  const auto surface_capabilities = ( **gct_physical_device.devices[ 0 ] ).getSurfaceCapabilitiesKHR(
+    **gct_surface
   );
-  const auto available_formats = physical_device.getSurfaceFormatsKHR(
-    surface
+  const auto available_formats = ( **gct_physical_device.devices[ 0 ] ).getSurfaceFormatsKHR(
+    **gct_surface
   );
 
   const auto gct_swapchain = gct_device->get_swapchain(
     gct::swapchain_create_info_t()
       .set_basic(
         vk::SwapchainCreateInfoKHR()
-          .setSurface( surface )
+          .setSurface( **gct_surface )
           .setMinImageCount( std::max( surface_capabilities.minImageCount, 3u ) )
           .setImageFormat( available_formats[ 0 ].format )
           .setImageColorSpace( available_formats[ 0 ].colorSpace ) 
@@ -123,9 +123,9 @@ int main( int argc, const char *argv[] ) {
   );
 
   
-  const auto device = **gct_device;
-  const auto queue = **gct_queue; 
-  const auto swapchain = **gct_swapchain;
+  const auto device = VkDevice( **gct_device );
+  const auto queue = VkQueue( **gct_queue ); 
+  const auto swapchain = VkSwapchainKHR( **gct_swapchain );
 
   auto gct_swapchain_images = gct_swapchain->get_images();
   
@@ -135,7 +135,7 @@ int main( int argc, const char *argv[] ) {
     CMAKE_CURRENT_SOURCE_DIR "/test.png",
     true
   );
-  const auto src_buffer = **gct_src_buffer;
+  const auto src_buffer = VkBuffer( **gct_src_buffer );
   
   {
     const auto command_buffer = gct_queue->get_command_pool()->allocate();
@@ -160,10 +160,10 @@ int main( int argc, const char *argv[] ) {
   for( std::size_t i = 0u; i != gct_swapchain_images.size(); ++i ) {
     framebuffers.emplace_back(
       fb_resources_t{
-        device.createSemaphoreUnique(
+        (*gct_device)->createSemaphoreUnique(
           vk::SemaphoreCreateInfo()
         ),
-        device.createSemaphoreUnique(
+        (*gct_device)->createSemaphoreUnique(
           vk::SemaphoreCreateInfo()
         )
       }
@@ -175,25 +175,24 @@ int main( int argc, const char *argv[] ) {
     const auto begin_time = std::chrono::high_resolution_clock::now();
 
     auto &sync = framebuffers[ current_frame ];
+    VkSemaphore semaphore = VkSemaphore( *sync.image_acquired );
     std::uint32_t image_index = 0u;
     if( vkAcquireNextImageKHR(
       device,
       swapchain,
       std::numeric_limits< std::uint64_t >::max(),
-      *sync.image_acquired,
+      semaphore,
       VK_NULL_HANDLE,
       &image_index
     ) != VK_SUCCESS ) std::abort();
 
     VkPresentInfoKHR present_info;
-    VkSwapchainKHR swapchain_ = swapchain;
-    VkSemaphore semaphore = *sync.image_acquired;
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     present_info.pNext = nullptr;
     present_info.waitSemaphoreCount = 1u;
     present_info.pWaitSemaphores = &semaphore;
     present_info.swapchainCount = 1u;
-    present_info.pSwapchains = &swapchain_;
+    present_info.pSwapchains = &swapchain;
     present_info.pImageIndices = &image_index;
     present_info.pResults = nullptr;
 

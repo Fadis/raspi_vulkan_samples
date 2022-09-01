@@ -118,15 +118,15 @@ int main( int argc, const char *argv[] ) {
   auto gct_depth_view = gct_depth->get_view( vk::ImageAspectFlagBits::eDepth );
   auto gct_color_view = gct_dest_image->get_view( vk::ImageAspectFlagBits::eColor );
 
-  const auto instance = **gct_instance;
-  const auto physical_device = **gct_physical_device.devices[ 0 ];
-  const auto device = **gct_device;
-  const auto render_pass = **gct_render_pass;
+  const auto instance = VkInstance( **gct_instance );
+  const auto physical_device = VkPhysicalDevice( **gct_physical_device.devices[ 0 ] );
+  const auto device = VkDevice( **gct_device );
+  const auto render_pass = VkRenderPass( **gct_render_pass );
   const auto allocator = **gct_allocator;
-  const auto dest_image = **gct_dest_image;
-  const auto depth = **gct_depth;
-  const auto depth_view = **gct_depth_view;
-  const auto color_view = **gct_color_view;
+  const auto dest_image = VkImage( **gct_dest_image );
+  const auto depth = VkImage( **gct_depth );
+  const auto depth_view = VkImageView( **gct_depth_view );
+  const auto color_view = VkImageView( **gct_color_view );
 
   // フレームバッファで使うイメージビュー
   std::vector< VkImageView > attachments{

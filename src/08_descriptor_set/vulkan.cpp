@@ -50,10 +50,10 @@ int main( int argc, const char *argv[] ) {
       ),
     VMA_MEMORY_USAGE_CPU_TO_GPU
   );
-  const auto instance = **gct_instance;
-  const auto physical_device = **gct_physical_device.devices[ 0 ];
-  const auto device = **gct_device;
-  const auto buffer = **gct_buffer; 
+  const auto instance = VkInstance( **gct_instance );
+  const auto physical_device = VkPhysicalDevice( **gct_physical_device.devices[ 0 ] );
+  const auto device = VkDevice( **gct_device );
+  const auto buffer = VkBuffer( **gct_buffer ); 
 
   // デスクリプタプールを作る
   VkDescriptorPoolSize descriptor_pool_size;

@@ -134,14 +134,14 @@ int main( int argc, const char *argv[] ) {
         )
     }
   );
-  const auto instance = **gct_instance;
-  const auto physical_device = **gct_physical_device.devices[ 0 ];
-  const auto device = **gct_device;
-  const auto descriptor_set = **gct_descriptor_set;
-  const auto queue = **gct_queue;
+  const auto instance = VkInstance( **gct_instance );
+  const auto physical_device = VkPhysicalDevice( **gct_physical_device.devices[ 0 ] );
+  const auto device = VkDevice( **gct_device );
+  const auto descriptor_set = VkDescriptorSet( **gct_descriptor_set );
+  const auto queue = VkQueue( **gct_queue );
   const auto queue_family_index = gct_queue->get_available_queue_family_index();
-  const auto pipeline_layout = **gct_pipeline_layout;
-  const auto pipeline = **gct_pipeline;
+  const auto pipeline_layout = VkPipelineLayout( **gct_pipeline_layout );
+  const auto pipeline = VkPipeline( **gct_pipeline );
 
  
   // コマンドプールを作る 
