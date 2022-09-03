@@ -26,12 +26,17 @@ out gl_PerVertex
 };
 
 void main() {
+  // ワールド座標系での頂点の位置を求めてフラグメントシェーダに送っておく
   vec4 local_pos = vec4( input_position.xyz, 1.0 );
   vec4 pos = uniforms.world_matrix * local_pos;
   output_position = pos.xyz;
+  // 法線もワールド座標系での向きに変換してフラグメントシェーダに送る
   output_normal = normalize( ( mat3(uniforms.world_matrix) * input_normal ) );
+  // 接線もワールド座標系での向きに変換してフラグメントシェーダに送る
   output_tangent = normalize( ( mat3(uniforms.world_matrix) * input_tangent ) );
+  // 頂点に設定されたテクスチャ座標をそのままフラグメントシェーダに送る
   output_texcoord = input_texcoord;
+  // ワールド座標系での頂点の座標を画面を基準とする座標系での座標に変換する
   gl_Position = uniforms.projection_matrix * uniforms.camera_matrix * pos;
 }
 

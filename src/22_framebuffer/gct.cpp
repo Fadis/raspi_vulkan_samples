@@ -120,9 +120,12 @@ int main( int argc, const char *argv[] ) {
   auto depth_view = depth->get_view( vk::ImageAspectFlagBits::eDepth );
   auto color_view = dest_image->get_view( vk::ImageAspectFlagBits::eColor );
 
+  // フレームバッファを作る
   auto framebuffer = render_pass->get_framebuffer(
     gct::framebuffer_create_info_t()
+      // このイメージビューと
       .add_attachment( color_view )
+      // このイメージビューで
       .add_attachment( depth_view )
   );
 

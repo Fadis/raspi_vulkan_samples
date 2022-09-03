@@ -142,9 +142,13 @@ int main( int argc, const char *argv[] ) {
     {
       auto rec = command_buffer->begin();
       for( auto &image: gct_swapchain_images ) {
+	// スワップチェーンの全てのイメージにバッファの内容をコピー
         rec.copy(
+          // このバッファから
           gct_src_buffer,
+	  // このイメージへ
           image,
+	  // コピーし終わったらサーフェスに送るのに適したレイアウトにする
           vk::ImageLayout::ePresentSrcKHR
         );
       }
@@ -176,26 +180,36 @@ int main( int argc, const char *argv[] ) {
 
     auto &sync = framebuffers[ current_frame ];
     VkSemaphore semaphore = VkSemaphore( *sync.image_acquired );
+    // スワップチェーンから表示中でないイメージを1つ取得
+    // 実際には表示中の物が返ってくる事があるが
+    // 表示から外れた時点でセマフォに通知が飛ぶので
+    // 続く処理をセマフォに通知が来るまで待たせておけば問題ない
     std::uint32_t image_index = 0u;
     if( vkAcquireNextImageKHR(
       device,
+      // このスワップチェーンからイメージを取得
       swapchain,
+      // イメージが貰えるまでいくらでも待つ
       std::numeric_limits< std::uint64_t >::max(),
+      // イメージが表示から外れた時点でこのセマフォに通知
       semaphore,
       VK_NULL_HANDLE,
       &image_index
     ) != VK_SUCCESS ) std::abort();
 
+    // スワップチェーンのイメージをサーフェスに送る
     VkPresentInfoKHR present_info;
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     present_info.pNext = nullptr;
     present_info.waitSemaphoreCount = 1u;
+    // このセマフォに通知が来るまで待ってから
     present_info.pWaitSemaphores = &semaphore;
     present_info.swapchainCount = 1u;
+    // このスワップチェーンの
     present_info.pSwapchains = &swapchain;
+    // このイメージをサーフェスに送る
     present_info.pImageIndices = &image_index;
     present_info.pResults = nullptr;
-
     if( vkQueuePresentKHR(
       queue,
       &present_info

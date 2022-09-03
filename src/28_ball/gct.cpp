@@ -28,12 +28,19 @@
 #include <gct/render_pass_begin_info.hpp>
 #include <gct/primitive.hpp>
 
+// スワップチェーンのイメージ毎に持つリソース
 struct fb_resources_t {
+  // スワップチェーンのイメージ
   std::shared_ptr< gct::image_t > color;
+  // スワップチェーンのイメージへのイメージビューを登録したフレームバッファ
   std::shared_ptr< gct::framebuffer_t > framebuffer;
+  // スワップチェーンのイメージが表示から外れたときに通知されるセマフォ
   std::shared_ptr< gct::semaphore_t > image_acquired;
+  // 描画を行うコマンドバッファの実行が完了したときに通知されるセマフォ
   std::shared_ptr< gct::semaphore_t > draw_complete;
+  // 描画に必要なコマンドを積むコマンドバッファ
   std::shared_ptr< gct::bound_command_buffer_t > command_buffer;
+  // 上のフレームバッファを使ってレンダーパスを開始するための設定
   gct::render_pass_begin_info_t render_pass_begin_info;
 };
 

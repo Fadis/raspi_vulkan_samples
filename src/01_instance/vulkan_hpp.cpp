@@ -4,6 +4,7 @@
 
 int main( int argc, const char *argv[] ) {
 #ifdef VULKAN_HPP_DISPATCH_LOADER_DYNAMIC
+  // Vulkan-HppからvkCreateInstanceを呼べるようにする
   vk::DynamicLoader dl;
   PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr =
   dl.getProcAddress<PFN_vkGetInstanceProcAddr>( "vkGetInstanceProcAddr" );
@@ -34,8 +35,10 @@ int main( int argc, const char *argv[] ) {
       .setPpEnabledLayerNames( layers.data() )
   );
 #ifdef VULKAN_HPP_DISPATCH_LOADER_DYNAMIC
+  // Vulkan-Hppからこのインスタンスで利用可能な全ての関数を呼べるようにする
   VULKAN_HPP_DEFAULT_DISPATCHER.init( *instance );
 #endif
+  // インスタンスがサポートするVulkanのバージョンを取得  
   auto version = vk::enumerateInstanceVersion();
   std::cout <<
     VK_VERSION_MAJOR( version ) << "." <<

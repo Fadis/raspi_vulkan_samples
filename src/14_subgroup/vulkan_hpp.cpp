@@ -90,6 +90,7 @@ int main( int argc, const char *argv[] ) {
           .set_shader_module( gct_shader )
           .set_specialization_info(
             gct::specialization_info_t< spec_t >()
+	      // ローカルグループのサイズを256x1にする
               .set_data(
                 spec_t{ 256, 1 }
               )
@@ -142,78 +143,57 @@ int main( int argc, const char *argv[] ) {
   const auto pipeline_layout = **gct_pipeline_layout;
   const auto pipeline = **gct_pipeline;
 
-  // コマンドプールを作る 
   const auto command_pool = device.createCommandPoolUnique(
     vk::CommandPoolCreateInfo()
-      // このキューファミリ用のやつを
       .setQueueFamilyIndex( queue_family_index )
   );
-  // コマンドバッファを確保する
   auto command_buffers = device.allocateCommandBuffersUnique(
     vk::CommandBufferAllocateInfo()
-      // このコマンドプールから
       .setCommandPool( *command_pool )
-      // 直接キューにsubmitする用のやつを
       .setLevel( vk::CommandBufferLevel::ePrimary )
-      // 1個
       .setCommandBufferCount( 1u )
   );
   const auto command_buffer = std::move( command_buffers[ 0 ] );
-  // フェンスを作る
   const auto fence = device.createFenceUnique(
     vk::FenceCreateInfo()
   );
   
-  // コマンドバッファにコマンドの記録を開始する
   command_buffer->begin(
     vk::CommandBufferBeginInfo()
   );
 
-  // 以降のパイプラインの実行ではこのデスクリプタセットを使う
   command_buffer->bindDescriptorSets(
-    // コンピュートパイプラインの実行に使うデスクリプタセットを
     vk::PipelineBindPoint::eCompute,
     pipeline_layout,
     0u,
-    // これにする
     { descriptor_set },
     {}
   );
 
-  // 以降のパイプラインの実行ではこのパイプラインを使う
   command_buffer->bindPipeline(
-    // コンピュートパイプラインを
     vk::PipelineBindPoint::eCompute,
-    // これにする
     pipeline
   );
 
-  // コンピュートパイプラインを実行する
+  // 256個の値に対して実行する
   command_buffer->dispatch( 1, 1, 1 );
 
-  // コマンドバッファにコマンドの記録を終了する
   command_buffer->end();
 
-  // コマンドバッファの内容をキューに流す
   queue.submit(
     {
       vk::SubmitInfo()
         .setCommandBufferCount( 1u )
         .setPCommandBuffers( &*command_buffer )
     },
-    // 実行し終わったらこのフェンスに通知
     *fence
   );
 
-  // フェンスが完了通知を受けるのを待つ
   if( device.waitForFences(
     {
-      // このフェンスを待つ
       *fence
     },
-    // 全部のフェンスに完了通知が来るまで待つ
     true,
-    // 1秒でタイムアウト
     1*1000*1000*1000
   ) != vk::Result::eSuccess ) abort();
 

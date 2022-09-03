@@ -36,4 +36,6 @@ subdirs(
   35_environment
   36_astc
   37_gltf
+  extra_pipeline_internal
+  extra_semaphore
 )

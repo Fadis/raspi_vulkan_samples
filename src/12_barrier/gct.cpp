@@ -147,31 +147,25 @@ int main( int argc, const char *argv[] ) {
     }
   );
 
-  // コマンドバッファを作る
   const auto command_buffer = queue->get_command_pool()->allocate();
 
   push_constant_t push_constant;
   push_constant.value = 3.f;
 
   {
-    // コマンドバッファにコマンドの記録を開始する
     auto rec = command_buffer->begin();
     
-    // 以降のパイプラインの実行ではこのデスクリプタセットを使う
     rec.bind_descriptor_set(
-      // コンピュートパイプラインの実行に使うデスクリプタセットを
       vk::PipelineBindPoint::eCompute,
       pipeline_layout,
-      // これにする
       descriptor_set
     );
     
-    // 以降のパイプラインの実行ではこのパイプラインを使う
     rec.bind_pipeline(
-      // これにする
       pipeline
     );
 
+    // 以降のDispatchではプッシュコンスタントの値を3にする
     rec->pushConstants(
       **pipeline_layout,
       vk::ShaderStageFlagBits::eCompute,
@@ -180,10 +174,12 @@ int main( int argc, const char *argv[] ) {
       reinterpret_cast< void* >( &push_constant )
     );
     
-    // コンピュートパイプラインを実行する
+    // 6個の値に対して実行する
     rec->dispatch( 1, 1, 1 );
 
-    // 上のdispatchでのバッファへの書き込みが完了した後で
+    // ここまでのbufferを触るシェーダが完了するまで以降のbufferを触るシェーダは
+    // 開始してはいけない
+    // 要するに上のDispatchが完了するまで下のDispatchが始まらないようにする
     rec.barrier(
       vk::AccessFlagBits::eShaderWrite,
       vk::AccessFlagBits::eShaderRead,
@@ -194,8 +190,8 @@ int main( int argc, const char *argv[] ) {
       {}
     );
     
+    // 以降のDispatchではプッシュコンスタントの値を2にする
     push_constant.value = 2.f;
-
     rec->pushConstants(
       **pipeline_layout,
       vk::ShaderStageFlagBits::eCompute,
@@ -204,27 +200,23 @@ int main( int argc, const char *argv[] ) {
       reinterpret_cast< void* >( &push_constant )
     );
     
+    // 12個の値に対して実行する
     rec->dispatch( 2, 1, 1 );
   }
   
-  // コマンドバッファの内容をキューに流す
   command_buffer->execute(
     gct::submit_info_t()
   );
   
-  // コマンドバッファの内容の実行が完了するのを待つ
   command_buffer->wait_for_executed();
 
   std::vector< float > host;
   host.reserve( 6 );
   {
-    // ステージングバッファをプロセスのアドレス空間にマップする
     auto mapped = buffer->map< float >();
-    // ステージングバッファからホストのメモリにコピー
     std::copy( mapped.begin(), mapped.end(), std::back_inserter( host ) );
   }
   
-  // ホストのメモリの内容をJSONにしてダンプ
   nlohmann::json json = host;
   std::cout << json.dump( 2 ) << std::endl;
 }

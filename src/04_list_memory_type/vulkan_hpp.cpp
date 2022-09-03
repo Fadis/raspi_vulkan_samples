@@ -26,11 +26,14 @@ int main( int argc, const char *argv[] ) {
 
   const auto physical_device = devices[ 0 ];
 
+  // この物理デバイスで利用可能なメモリの種類を取得
   auto memory_props = physical_device.getMemoryProperties();
+  // 取得したヒープの一覧をダンプ
   std::cout << "Heaps" << std::endl;
   for( std::uint32_t i = 0u; i != memory_props.memoryHeapCount; ++i ) {
     std::cout << nlohmann::json( memory_props.memoryHeaps[ i ] ).dump( 2 ) << std::endl;
   }
+  // 取得したタイプの一覧をダンプ
   std::cout << "Types" << std::endl;
   for( std::uint32_t i = 0u; i != memory_props.memoryTypeCount; ++i ) {
     std::cout << nlohmann::json( memory_props.memoryTypes[ i ] ).dump( 2 ) << std::endl;

@@ -130,8 +130,10 @@ int main( int argc, const char *argv[] ) {
   const auto pipeline_cache = **gct_pipeline_cache;
 
   auto push_constant_range = vk::PushConstantRange()
+    // コンピュートシェーダで
     .setStageFlags( vk::ShaderStageFlagBits::eCompute )
     .setOffset( 0 )
+    // push_constant_t型のサイズのプッシュコンスタントを使う
     .setSize( sizeof( push_constant_t ) );
 
   // パイプラインレイアウトを作る
@@ -141,10 +143,10 @@ int main( int argc, const char *argv[] ) {
       // このレイアウトのデスクリプタセットとくっつく
       .setPSetLayouts( &descriptor_set_layout )
       .setPushConstantRangeCount( 1u )
+      // プッシュコンスタントを使う
       .setPPushConstantRanges( &push_constant_range )
   );
 
-  // シェーダの特殊化パラメータの配置
   const std::vector< vk::SpecializationMapEntry > specialization_map{
     vk::SpecializationMapEntry()
       .setConstantID( 1 )
@@ -156,7 +158,6 @@ int main( int argc, const char *argv[] ) {
       .setSize( sizeof( std::uint32_t ) )
   };
   
-  // シェーダの特殊化パラメータの値
   const spec_t specialization_values{ 6, 1 };
   
   const auto specialization_info = vk::SpecializationInfo()
@@ -165,58 +166,39 @@ int main( int argc, const char *argv[] ) {
     .setDataSize( sizeof( spec_t ) )
     .setPData( &specialization_values );
 
-  // パイプラインの設定
   const std::vector< vk::ComputePipelineCreateInfo > pipeline_create_info{
     vk::ComputePipelineCreateInfo()
-    // シェーダの設定
     .setStage(
       vk::PipelineShaderStageCreateInfo()
-        // コンピュートシェーダに
         .setStage( vk::ShaderStageFlagBits::eCompute )
-        // このシェーダを使う
         .setModule( shader )
-        // main関数から実行する
         .setPName( "main" )
-        // シェーダの特殊化パラメータを設定
         .setPSpecializationInfo(
           &specialization_info
         )
     )
-    // このレイアウトのパイプラインを作る
     .setLayout( *pipeline_layout )
   };
-  // パイプラインを作る
   auto wrapped = device.createComputePipelinesUnique(
-    // このパイプラインキャッシュを使って
     VK_NULL_HANDLE,
-    // この設定で
     pipeline_create_info
   );
 
-  // パイプラインは一度に複数作れるのでvectorで返ってくる
-  // 1つめの設定のパイプラインは返り値の1要素目に入っている
   if( wrapped.result != vk::Result::eSuccess )
     vk::throwResultException( wrapped.result, "createComputePipeline failed" );
   auto pipeline = std::move( wrapped.value[ 0 ] );
 
-  // コマンドプールを作る 
   const auto command_pool = device.createCommandPoolUnique(
     vk::CommandPoolCreateInfo()
-      // このキューファミリ用のやつを
       .setQueueFamilyIndex( queue_family_index )
   );
-  // コマンドバッファを確保する
   auto command_buffers = device.allocateCommandBuffersUnique(
     vk::CommandBufferAllocateInfo()
-      // このコマンドプールから
       .setCommandPool( *command_pool )
-      // 直接キューにsubmitする用のやつを
       .setLevel( vk::CommandBufferLevel::ePrimary )
-      // 1個
       .setCommandBufferCount( 1u )
   );
   const auto command_buffer = std::move( command_buffers[ 0 ] );
-  // フェンスを作る
   const auto fence = device.createFenceUnique(
     vk::FenceCreateInfo()
   );
@@ -224,30 +206,24 @@ int main( int argc, const char *argv[] ) {
   push_constant_t push_constant;
   push_constant.value = 3.f;
 
-  // コマンドバッファにコマンドの記録を開始する
   command_buffer->begin(
     vk::CommandBufferBeginInfo()
   );
 
-  // 以降のパイプラインの実行ではこのデスクリプタセットを使う
   command_buffer->bindDescriptorSets(
-    // コンピュートパイプラインの実行に使うデスクリプタセットを
     vk::PipelineBindPoint::eCompute,
     *pipeline_layout,
     0u,
-    // これにする
     { descriptor_set },
     {}
   );
 
-  // 以降のパイプラインの実行ではこのパイプラインを使う
   command_buffer->bindPipeline(
-    // コンピュートパイプラインを
     vk::PipelineBindPoint::eCompute,
-    // これにする
     *pipeline
   );
 
+  // 以降のvkCmdDispatchではプッシュコンスタントの値にこれを使う
   command_buffer->pushConstants(
     *pipeline_layout,
     vk::ShaderStageFlagBits::eCompute,
@@ -256,32 +232,25 @@ int main( int argc, const char *argv[] ) {
     reinterpret_cast< const void* >( &push_constant )
   );
 
-  // コンピュートパイプラインを実行する
+  // この実行では上で設定した値が使われる
   command_buffer->dispatch( 1, 1, 1 );
 
-  // コマンドバッファにコマンドの記録を終了する
   command_buffer->end();
 
-  // コマンドバッファの内容をキューに流す
   queue.submit(
     {
       vk::SubmitInfo()
         .setCommandBufferCount( 1u )
         .setPCommandBuffers( &*command_buffer )
     },
-    // 実行し終わったらこのフェンスに通知
     *fence
   );
 
-  // フェンスが完了通知を受けるのを待つ
   if( device.waitForFences(
     {
-      // このフェンスを待つ
       *fence
     },
-    // 全部のフェンスに完了通知が来るまで待つ
     true,
-    // 1秒でタイムアウト
     1*1000*1000*1000
   ) != vk::Result::eSuccess ) abort();
 

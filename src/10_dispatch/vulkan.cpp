@@ -289,6 +289,7 @@ int main( int argc, const char *argv[] ) {
     nullptr
   );
 
+  // バッファの内容をCPU側のメモリにコピーして内容をダンプする
   std::vector< float > host;
   host.reserve( 6 );
   {

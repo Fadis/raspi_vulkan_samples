@@ -1,6 +1,8 @@
 #include <iostream>
 #include <gct/instance.hpp>
 #include <gct/physical_device.hpp>
+#include <nlohmann/json.hpp>
+#include <vulkan2json/QueueFamilyProperties.hpp>
 
 int main( int argc, const char *argv[] ) {
   std::shared_ptr< gct::instance_t > gct_instance(
@@ -37,6 +39,10 @@ int main( int argc, const char *argv[] ) {
   vkGetPhysicalDeviceQueueFamilyProperties( physical_device, &queue_props_count, nullptr );
   std::vector< VkQueueFamilyProperties > queue_props( queue_props_count );
   vkGetPhysicalDeviceQueueFamilyProperties( physical_device, &queue_props_count, queue_props.data() );
+
+  std::cout << "デバイスに備わっているキュー" << std::endl;
+  std::cout << nlohmann::json( queue_props ).dump( 2 ) << std::endl;
+
   uint32_t queue_family_index = 0u;
   // 計算要求を受け付けるキューを探す
   for( uint32_t i = 0; i < queue_props.size(); ++i ) {

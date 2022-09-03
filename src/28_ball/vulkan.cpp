@@ -103,16 +103,18 @@ int main( int argc, const char *argv[] ) {
       vk::CommandPoolCreateFlagBits::eResetCommandBuffer
     }
   };
-  const auto device = selected.create_device(
+  const auto gct_device = selected.create_device(
     queue_requirements,
     gct::device_create_info_t()
   );
-  const auto queue = device->get_queue( 0u );
+  const auto device = **gct_device;
+  const auto queue = gct_device->get_queue( 0u );
 
-  const auto swapchain = device->get_swapchain( gct_surface );
-  const auto swapchain_images = swapchain->get_images();
+  const auto gct_swapchain = gct_device->get_swapchain( gct_surface );
+  const auto swapchain = **gct_swapchain;
+  const auto swapchain_images = gct_swapchain->get_images();
 
-  const auto descriptor_pool = device->get_descriptor_pool(
+  const auto descriptor_pool = gct_device->get_descriptor_pool(
     gct::descriptor_pool_create_info_t()
       .set_basic(
         vk::DescriptorPoolCreateInfo()
@@ -123,14 +125,14 @@ int main( int argc, const char *argv[] ) {
       .rebuild_chain()
   );
 
-  const auto pipeline_cache = device->get_pipeline_cache();
+  const auto pipeline_cache = gct_device->get_pipeline_cache();
 
   VmaAllocatorCreateInfo allocator_create_info{};
-  const auto allocator = device->get_allocator(
+  const auto allocator = gct_device->get_allocator(
     allocator_create_info
   );
   
-  const auto render_pass = device->get_render_pass(
+  const auto render_pass = gct_device->get_render_pass(
     gct::select_simple_surface_format( gct_surface->get_caps().get_formats() ).basic.format,
     vk::Format::eD16Unorm
   );
@@ -161,8 +163,8 @@ int main( int argc, const char *argv[] ) {
       fb_resources_t{
         image,
         framebuffer,
-        device->get_semaphore(),
-        device->get_semaphore(),
+        gct_device->get_semaphore(),
+        gct_device->get_semaphore(),
         queue->get_command_pool()->allocate(),
         gct::render_pass_begin_info_t()
           .set_basic(
@@ -178,10 +180,10 @@ int main( int argc, const char *argv[] ) {
     );
   }
 
-  const auto vs = device->get_shader_module( CMAKE_CURRENT_BINARY_DIR "/shader.vert.spv" );
-  const auto fs = device->get_shader_module( CMAKE_CURRENT_BINARY_DIR "/shader.frag.spv" );
+  const auto vs = gct_device->get_shader_module( CMAKE_CURRENT_BINARY_DIR "/shader.vert.spv" );
+  const auto fs = gct_device->get_shader_module( CMAKE_CURRENT_BINARY_DIR "/shader.frag.spv" );
  
-  const auto descriptor_set_layout = device->get_descriptor_set_layout(
+  const auto descriptor_set_layout = gct_device->get_descriptor_set_layout(
     gct::descriptor_set_layout_create_info_t()
       .add_binding(
         vs->get_props().get_reflection()
@@ -194,14 +196,14 @@ int main( int argc, const char *argv[] ) {
   const auto gct_descriptor_set = descriptor_pool->allocate( descriptor_set_layout );
   const auto descriptor_set = VkDescriptorSet( **gct_descriptor_set );
 
-  const auto gct_pipeline_layout = device->get_pipeline_layout(
+  const auto gct_pipeline_layout = gct_device->get_pipeline_layout(
     gct::pipeline_layout_create_info_t()
       .add_descriptor_set_layout( descriptor_set_layout )
   );
   const auto pipeline_layout = VkPipelineLayout( **gct_pipeline_layout );
 
   const auto [vistat,vamap,stride] = get_vertex_attributes(
-    *device,
+    *gct_device,
     vs->get_props().get_reflection()
   );
 
@@ -329,87 +331,82 @@ int main( int argc, const char *argv[] ) {
       const auto draw_complete = VkSemaphore( **sync.draw_complete );
       const auto command_buffer = VkCommandBuffer( **sync.command_buffer );
       sync.command_buffer->wait_for_executed();
-      auto image_index = swapchain->acquire_next_image( sync.image_acquired );
+
+      // スワップチェーンからイメージを取得し
+      std::uint32_t image_index = 0u;
+      if( vkAcquireNextImageKHR(
+        device,
+        swapchain,
+        std::numeric_limits< std::uint64_t >::max(),
+        image_acquired,
+        VK_NULL_HANDLE,
+        &image_index
+      ) != VK_SUCCESS ) std::abort();
+      // そのイメージへのイメージビューを登録したフレームバッファを使ってレンダーパスを開始
       auto &fb = framebuffers[ image_index ];
       const auto &render_pass_begin_info = static_cast< const VkRenderPassBeginInfo& >( fb.render_pass_begin_info.rebuild_chain().get_basic() );
       {
         auto recorder = sync.command_buffer->begin();
 
-        // レンダーパスを開始する
         vkCmdBeginRenderPass(
           command_buffer,
           &render_pass_begin_info,
           VkSubpassContents::VK_SUBPASS_CONTENTS_INLINE
         );
 
-        // このパイプラインを使う
         vkCmdBindPipeline(
           command_buffer,
           VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS,
           pipeline
         );
 
-        // このデスクリプタセットを使う
         VkDescriptorSet raw_descriptor_set = descriptor_set;
         vkCmdBindDescriptorSets(
           command_buffer,
           VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS,
           pipeline_layout,
-          // set=0から
           0,
-          // 1個のデスクリプタセットを
           1,
-          // これにする
           &raw_descriptor_set,
           0,
           nullptr
         );
        
-        // この頂点バッファを使う
-        // binding 0番がvertex_bufferの内容になる
         VkBuffer raw_vertex_buffer = vertex_buffer;
         VkDeviceSize vertex_buffer_offset = 0;
         vkCmdBindVertexBuffers(
           command_buffer,
-          // binding 0番から
           0,
-          // 1個の頂点バッファを
           1,
-          // これにする
           &raw_vertex_buffer,
-          // バッファの先頭から使う
           &vertex_buffer_offset
         );
        
-        // パイプラインを実行する
-        //
+	// 描画を行う
         vkCmdDraw(
           command_buffer,
-          // 頂点バッファには頂点が3個あって
           vertex_count,
-          // それを1回繰り返す
           1,
-          // 最初の頂点はバッファの0番目の頂点で
           0,
-          // 繰り返し回数は0からカウント
           0
         );
 
-	// レンダーパスを終了する
-        // サブパスがまだある時はvkCmdEndRenderPassする前にvkCmdNextSubpass
         vkCmdEndRenderPass(
           command_buffer
         );
       }
+      // スワップチェーンのイメージが表示から外れたらこれらのコマンドを実行
+      // 実行が完了したら描画完了を別のセマフォに通知
       sync.command_buffer->execute(
         gct::submit_info_t()
           .add_wait_for( sync.image_acquired, vk::PipelineStageFlagBits::eColorAttachmentOutput )
           .add_signal_to( sync.draw_complete )
       );
+      // 描画完了の通知がセマフォに届いたらイメージをサーフェスに送る
       queue->present(
         gct::present_info_t()
           .add_wait_for( sync.draw_complete )
-          .add_swapchain( swapchain, image_index )
+          .add_swapchain( gct_swapchain, image_index )
       );
       ++current_frame;
       current_frame %= framebuffers.size();

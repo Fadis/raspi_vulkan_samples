@@ -113,7 +113,8 @@ int main( int argc, const char *argv[] ) {
   attachments[ 0 ].format = VkFormat::VK_FORMAT_R8G8B8A8_UNORM;
   // サンプリング点が1テクセルあたり1つで
   attachments[ 0 ].samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
-  // レンダーパスに入る前の値は読めなくてもよくて
+  // レンダーパスに入るときにアタッチメントの内容をクリアする
+  // クリアにつかう値はレンダーパスの開始時に指定する
   attachments[ 0 ].loadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_CLEAR;
   // 書いた内容はレンダーパスの後で読める必要があり
   attachments[ 0 ].storeOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
@@ -132,7 +133,7 @@ int main( int argc, const char *argv[] ) {
   attachments[ 1 ].format = VkFormat::VK_FORMAT_D16_UNORM;
   // サンプリング点が1テクセルあたり1つで
   attachments[ 1 ].samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
-  // レンダーパスに入る前の値は読めなくてもよくて
+  // レンダーパスに入るときにアタッチメントの内容をクリアする
   attachments[ 1 ].loadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_CLEAR;
   // 書いた内容はレンダーパスの後で読める必要があり
   attachments[ 1 ].storeOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;

@@ -218,6 +218,7 @@ int main( int argc, const char *argv[] ) {
     1*1000*1000*1000
   ) != vk::Result::eSuccess ) abort();
 
+  // バッファの内容をCPU側のメモリにコピーして内容をダンプする
   std::vector< float > host;
   host.reserve( 6 );
   {

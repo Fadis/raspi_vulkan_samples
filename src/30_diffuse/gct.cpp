@@ -60,8 +60,11 @@ struct uniform_t {
   glm::mat4 projection_matrix;
   glm::mat4 camera_matrix;
   glm::mat4 world_matrix;
+  // 視点の位置
   glm::vec4 eye_pos;
+  // 光源の位置
   glm::vec4 light_pos;
+  // 光源から発せられる光のエネルギーの大きさ
   float light_energy;
 };
 
@@ -382,7 +385,7 @@ int main( int argc, const char *argv[] ) {
   );
 
   auto camera_pos = glm::vec3{ 0.f, -3.f, 6.0f };
-  float camera_angle = 0;//M_PI;
+  float camera_angle = 0;
   glm::vec3 camera_direction( std::sin( camera_angle ), 0, -std::cos( camera_angle ) );
   auto uniforms = uniform_t()
     .set_projection_matrix(
@@ -398,8 +401,11 @@ int main( int argc, const char *argv[] ) {
     .set_world_matrix(
       glm::mat4( 1.0 )
     )
+    // 視点の位置をセット
     .set_eye_pos( glm::vec4{ camera_pos[ 0 ], camera_pos[ 1 ], camera_pos[ 2 ], 1.0 } )
+    // 光源の位置をセット
     .set_light_pos( glm::vec4( 2.0, -2.0, 2.0, 1.0 ) )
+    // 光源から発せられる光のエネルギーの大きさ
     .set_light_energy( 2.0 );
 
   uint32_t current_frame = 0u;

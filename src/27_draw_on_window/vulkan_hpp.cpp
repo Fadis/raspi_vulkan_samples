@@ -175,19 +175,30 @@ int main( int argc, const char *argv[] ) {
     const auto begin_time = std::chrono::high_resolution_clock::now();
 
     auto &sync = framebuffers[ current_frame ];
+    // スワップチェーンから表示中でないイメージを1つ取得
+    // 実際には表示中の物が返ってくる事があるが
+    // 表示から外れた時点でセマフォに通知が飛ぶので
+    // 続く処理をセマフォに通知が来るまで待たせておけば問題ない
     std::uint32_t image_index = device.acquireNextImageKHR(
+      // このスワップチェーンからイメージを取得
       swapchain,
+      // イメージが貰えるまでいくらでも待つ
       std::numeric_limits< std::uint64_t >::max(),
+      // イメージが表示から外れた時点でこのセマフォに通知
       *sync.image_acquired,
       VK_NULL_HANDLE
     ).value;
 
+    // スワップチェーンのイメージをサーフェスに送る
     if( queue.presentKHR(
       vk::PresentInfoKHR()
         .setWaitSemaphoreCount( 1u )
+        // このセマフォに通知が来るまで待ってから
 	.setPWaitSemaphores( &*sync.image_acquired )
 	.setSwapchainCount( 1 )
+        // このスワップチェーンの
 	.setPSwapchains( &swapchain )
+        // このイメージをサーフェスに送る
 	.setPImageIndices( &image_index )
     ) != vk::Result::eSuccess ) std::abort();
 

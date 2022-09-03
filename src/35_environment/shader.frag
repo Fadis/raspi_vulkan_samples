@@ -68,25 +68,40 @@ vec3 eotf( vec3 v ) {
 void main()  {
   const float normal_scale = 1.0;
   const float pi = 3.141592653589793;
-
+  // 頂点シェーダから受け取った法線と接線を正規化し、外積求めて接平面座標系への変換行列にする
   vec3 vertex_normal = normalize( input_normal.xyz );
   vec3 tangent = normalize( input_tangent.xyz );
   vec3 binormal = cross( vertex_normal, tangent );
   mat3 inversed_texture_space = mat3( tangent, binormal, vertex_normal );
   mat3 texture_space = transpose( inversed_texture_space );
+  // 接平面座標系での法線の向きをイメージから得る
   vec3 normal_in_texture = normalize( texture( normal_map, input_texcoord ).rgb * vec3( normal_scale, normal_scale, 1 ) * 2.0 - 1.0 );
+  // 接平面座標系での法線をワールド座標系に戻す
   vec3 normal_in_world = inversed_texture_space * normal_in_texture;
+  // ワールド座標系での光源の向きを接平面座標系での向きに変換する
   vec3 light_dir_in_texture = texture_space * normalize( uniforms.light_pos.xyz - input_position );
+  // ワールド座標系での視点の向きを求める
   vec3 eye_dir_in_world = normalize( uniforms.eye_pos.xyz - input_position );
+  // ワールド座標系での視点の向きを接平面座標系での向きに変換する
   vec3 eye_dir_in_texture = texture_space * eye_dir_in_world;
+  // イメージをサンプリングしてこの位置における色を得る
   vec3 input_color = texture( base_color, input_texcoord ).rgb;
+  // ランバートモデルで拡散を求める
   vec3 diffuse = input_color * ( max( dot( light_dir_in_texture, normal_in_texture ), 0 ) /pi );
+  // イメージをサンプリングしてこの位置における表面の荒さを得る
   float roughness = texture( roughness_map, input_texcoord ).r;
+  // イメージから得た表面の荒さを使ってGGXモデルで反射を求める
   vec3 specular = max( dot( light_dir_in_texture, normal_in_texture ), 0 ) * max( walter( light_dir_in_texture, eye_dir_in_texture, normal_in_texture, roughness, vec3( 1.f, 1.f, 1.f ) ), vec3( 0.0, 0.0, 0.0 ) );
+  // ワールド座標系での視点の向きと法線から反射方向を求める
   vec3 environment_dir = normalize( reflect( normalize( eye_dir_in_world ), normalize( normal_in_world ) ) );
+  // 環境マップを読んで反射方向から来る光を求める
+  // 表面が荒いほど高いミップレベルのミップマップを使う = 環境マップがぼやける
   vec3 environment_specular = textureLod( environment_map, vec2( environment_dir.x, -environment_dir.y ) * 0.5 + 0.5, roughness * roughness * 8.0 ).rgb * 0.005;
+  // 環境マップの高いミップレベルのミップマップを使って環境光由来の拡散を求めた事にする
   vec3 environment_diffuse = textureLod( environment_map, vec2( environment_dir.x, -environment_dir.y ) * 0.5 + 0.5, 7.0 ).rgb * input_color * 0.3;
+  // 環境マップで計算した値を環境光の大きさとして用いる
   vec3 ambient = environment_specular + environment_diffuse;
+  // 光のエネルギーをsRGB色空間での色に変換して出力する
   output_color = vec4( eotf( ( diffuse + specular + ambient ) * uniforms.light_energy ), 1.0 );
 }
 

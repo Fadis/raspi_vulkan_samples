@@ -16,6 +16,7 @@
 #include <gct/graphics_pipeline_create_info.hpp>
 #include <gct/graphics_pipeline.hpp>
 #include <gct/pipeline_layout.hpp>
+#include <gct/render_pass_begin_info.hpp>
 
 int main( int argc, const char *argv[] ) {
   const std::shared_ptr< gct::instance_t > instance(
@@ -299,16 +300,18 @@ int main( int argc, const char *argv[] ) {
       vk::ImageLayout::eColorAttachmentOptimal
     );
 
-    // 頂点バッファ
+    // 三角形の頂点の座標
     const std::vector< float > vertex{
       0.f, 0.f, 0.f,
-      0.f, 1.f, 0.f,
-      1.f, 0.f, 0.f
+      1.f, 0.f, 0.f,
+      0.f, 1.f, 0.f
     };
+    // 三角形の頂点の座標をバッファに乗せる
     vertex_buffer = rec.load_buffer(
       allocator,
       vertex.data(),
       sizeof( float ) * vertex.size(),
+      // 用途は頂点配列
       vk::BufferUsageFlagBits::eVertexBuffer
     );
 
@@ -322,61 +325,46 @@ int main( int argc, const char *argv[] ) {
       {}
     );
 
-    // loadOpがVK_ATTACHMENT_LOAD_OP_CLEARのアタッチメントは
-    // レンダーパス開始時にこの色で塗り潰す
-    const std::array< vk::ClearValue, 2 > clear_values{
-      // 色は真っ白で
-      vk::ClearColorValue(
-        std::array< float, 4u >{ 1.0f, 1.0f, 1.0f, 1.0f }
-      ),
-      // 深度は最も遠く
-      vk::ClearDepthStencilValue( 1.f, 0 )
-    };
-
-    // レンダーパスを開始する
-    rec->beginRenderPass(
-      vk::RenderPassBeginInfo()
-        // このレンダーパスに
-        .setRenderPass( **render_pass )
-        // このフレームバッファをつけて
-        .setFramebuffer( **framebuffer )
-        // フレームバッファのこの範囲に描く
-        .setRenderArea(
-          vk::Rect2D()
-            .setOffset( { 0, 0 } )
-            .setExtent( { 1024, 1024 } )
-        )
-        // フレームバッファの消去にはこの色を使う
-        .setClearValueCount( clear_values.size() )
-        .setPClearValues( clear_values.data() ),
-      vk::SubpassContents::eInline
-    );
-
-    // このパイプラインを使う
-    rec->bindPipeline(
-      vk::PipelineBindPoint::eGraphics,
-      **pipeline
-    );
-
-    // このデスクリプタセットを使う
-    rec->bindDescriptorSets(
-      vk::PipelineBindPoint::eGraphics,
-      **pipeline_layout,
-      0,
-      **descriptor_set,
-      {}
-    );
-
-    // この頂点バッファを使う
-    // binding 0番がvertex_bufferの内容になる
-    rec->bindVertexBuffers( 0, { **vertex_buffer }, { 0 } );
-
-    // パイプラインを実行する
-    rec->draw( 3, 1, 0, 0 );
-
-    // レンダーパスを終了する
-    // サブパスがまだある時はvkCmdEndRenderPassする前にvkCmdNextSubpass
-    rec->endRenderPass();
+    {
+      // レンダーパスを開始する
+      auto render_pass_token = rec.begin_render_pass(
+        gct::render_pass_begin_info_t()
+          .set_basic(
+            vk::RenderPassBeginInfo()
+              .setRenderPass( **render_pass )
+              .setFramebuffer( **framebuffer )
+              .setRenderArea( vk::Rect2D( vk::Offset2D(0, 0), vk::Extent2D((uint32_t)width, (uint32_t)height) ) )
+          )
+          // loadOpがVK_ATTACHMENT_LOAD_OP_CLEARのアタッチメントは
+          // レンダーパス開始時にこの色で塗り潰す
+          // 色は真っ白で
+          .add_clear_value( vk::ClearColorValue( std::array< float, 4u >{ 1.0f, 1.0f, 1.0f, 1.0f } ) )
+          // 深度は最も遠く
+          .add_clear_value( vk::ClearDepthStencilValue( 1.f, 0 ) )
+          .rebuild_chain(),
+        vk::SubpassContents::eInline
+      );
+     
+      rec->bindPipeline(
+        vk::PipelineBindPoint::eGraphics,
+        **pipeline
+      );
+     
+      rec->bindDescriptorSets(
+        vk::PipelineBindPoint::eGraphics,
+        **pipeline_layout,
+        0,
+        **descriptor_set,
+        {}
+      );
+     
+      // この頂点バッファを使う
+      // binding 0番がvertex_bufferの内容になる
+      rec->bindVertexBuffers( 0, { **vertex_buffer }, { 0 } );
+     
+      // パイプラインを実行する
+      rec->draw( 3, 1, 0, 0 );
+    }
     
     rec.barrier(
       vk::AccessFlagBits::eColorAttachmentWrite,

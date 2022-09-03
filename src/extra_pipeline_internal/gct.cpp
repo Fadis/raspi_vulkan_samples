@@ -28,6 +28,8 @@
 #include <gct/mmaped_file.hpp>
 #include <nlohmann/json.hpp>
 #include <vulkan2json/PipelineCreationFeedbackEXT.hpp>
+#include <vulkan2json/PipelineExecutablePropertiesKHR.hpp>
+#include <vulkan2json/PipelineExecutableInternalRepresentationKHR.hpp>
 
 int main( int argc, const char *argv[] ) {
   const std::shared_ptr< gct::instance_t > instance(
@@ -43,7 +45,8 @@ int main( int argc, const char *argv[] ) {
   );
   auto groups = instance->get_physical_devices( {} );
   auto physical_device = groups[ 0 ].with_extensions( {
-    VK_EXT_PIPELINE_CREATION_FEEDBACK_EXTENSION_NAME
+    VK_EXT_PIPELINE_CREATION_FEEDBACK_EXTENSION_NAME,
+    VK_KHR_PIPELINE_EXECUTABLE_PROPERTIES_EXTENSION_NAME
   } );
   
   std::uint32_t width = 1024u;
@@ -101,18 +104,8 @@ int main( int argc, const char *argv[] ) {
     vk::Format::eD16Unorm
   );
 
-  std::filesystem::path pipeline_cache_filename(
-    CMAKE_CURRENT_BINARY_DIR "/pipeline_cache"
-  );
   
-  const auto pipeline_cache = device->get_pipeline_cache(
-    std::filesystem::exists( pipeline_cache_filename )  ? 
-      gct::pipeline_cache_create_info_t()
-        .load( pipeline_cache_filename.string() )
-	.rebuild_chain():
-      gct::pipeline_cache_create_info_t()
-        .rebuild_chain()
-  );
+  const auto pipeline_cache = device->get_pipeline_cache();
 
   // 何もしないステンシルの設定
   const auto stencil_op = vk::StencilOpState()
@@ -236,14 +229,71 @@ int main( int argc, const char *argv[] ) {
       .set_render_pass( render_pass, 0 )
   );
 
-  // パイプラインのコンパイルにかかった時間を表示
+  std::cout << "パイプラインの作成にかかった時間" << std::endl;
   if( pipeline->get_props().has_creation_feedback() )
     std::cout << nlohmann::json( *pipeline->get_props().get_creation_feedback().pPipelineCreationFeedback ).dump( 2 ) << std::endl;
 
-  // パイプラインキャッシュをファイルに保存する
-  auto serialized = (*device)->getPipelineCacheData( **pipeline_cache );
-  std::filesystem::remove( pipeline_cache_filename );
-  std::fstream pipeline_cache_output( pipeline_cache_filename.string(), std::ios_base::out );
-  pipeline_cache_output.write( reinterpret_cast< const char* >( serialized.data() ), serialized.size() );
+  const auto pipeline_props = (*device)->getPipelineExecutablePropertiesKHR(
+    vk::PipelineInfoKHR()
+      .setPipeline( **pipeline )
+  );
+  std::cout << "パイプラインの内部情報" << std::endl;
+  for( unsigned int ei = 0u; ei != pipeline_props.size(); ++ei ) {
+    const auto executable = vk::PipelineExecutableInfoKHR()
+      .setPipeline( **pipeline )
+      .setExecutableIndex( ei );
+    std::uint32_t count = 0u;
+    if( (*device)->getPipelineExecutableInternalRepresentationsKHR(
+      &executable,
+      &count,
+      nullptr
+    ) != vk::Result::eSuccess ) std::abort();
+    std::vector< std::vector< char > > data( count, std::vector< char >( 8192 ) );
+    std::vector< vk::PipelineExecutableInternalRepresentationKHR > internal;
+    for( auto &d: data ) {
+      auto temp = vk::PipelineExecutableInternalRepresentationKHR();
+      temp.dataSize = d.size();
+      temp.pData = d.data();
+      internal.push_back(
+        temp
+      );
+    }
+    if( (*device)->getPipelineExecutableInternalRepresentationsKHR(
+      &executable,
+      &count,
+      internal.data()
+    ) != vk::Result::eSuccess ) std::abort();
+    auto root = nlohmann::json( pipeline_props[ ei ] );
+    root[ "internal" ] = nlohmann::json::array();
+    for( const auto &i: internal ) {
+      root[ "internal" ].push_back( nlohmann::json( i ) );
+      if( i.isText ) {
+	std::cout << "=== " << pipeline_props[ ei ].name << "(" << pipeline_props[ ei ].description << ") : " << i.name << "(" << i.description << ")" << std::endl;
+	if( i.pData && i.dataSize != 0u ) {
+	  std::cout << std::string( reinterpret_cast< const char* >( i.pData ), i.dataSize ) << std::endl;
+	}
+	else {
+	  std::cout << "(null)" << std::endl;
+	}
+	std::cout << std::endl;
+      }
+    }
+    const auto stats = (*device)->getPipelineExecutableStatisticsKHR( executable );
+    for(  const auto &s :stats )  {
+      if( s.format == vk::PipelineExecutableStatisticFormatKHR::eBool32 ) {
+        std::cout << s.name << "(" << s.description << ") = " << s.value.b32 << std::endl;
+      }
+      else if( s.format == vk::PipelineExecutableStatisticFormatKHR::eInt64 ) {
+        std::cout << s.name << "(" << s.description << ") = " << s.value.i64 << std::endl;
+      }
+      else if( s.format == vk::PipelineExecutableStatisticFormatKHR::eUint64 ) {
+        std::cout << s.name << "(" << s.description << ") = " << s.value.u64 << std::endl;
+      }
+      else if( s.format == vk::PipelineExecutableStatisticFormatKHR::eFloat64 ) {
+        std::cout << s.name << "(" << s.description << ") = " << s.value.f64 << std::endl;
+      }
+    }
+    std::cout << root.dump( 2 ) << std::endl; 
+  }
 }
 

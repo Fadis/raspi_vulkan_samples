@@ -367,6 +367,7 @@ int main( int argc, const char *argv[] ) {
     nullptr
   );
   
+  // パイプラインのコンパイルにかかった時間を表示
   std::cout << nlohmann::json( feedback_.back() ).dump( 2 ) << std::endl;
 
   // パイプラインキャッシュをファイルに保存する

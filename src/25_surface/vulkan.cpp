@@ -14,6 +14,7 @@
 
 int main( int argc, const char *argv[] ) {
 
+  // glfwを初期化する
   if( !glfwInit() ) {
     const char *p = nullptr;
     glfwGetError( &p );
@@ -21,6 +22,7 @@ int main( int argc, const char *argv[] ) {
     std::abort();
   }
 
+  // このプラットフォームでサーフェスを使う為に必要な拡張を取得する
   std::uint32_t required_extension_count = 0u;
   const char **required_extensions_begin = glfwGetRequiredInstanceExtensions( &required_extension_count );
   const auto required_extensions_end = std::next( required_extensions_begin, required_extension_count );
@@ -61,8 +63,11 @@ int main( int argc, const char *argv[] ) {
   std::uint32_t width = 1024; 
   std::uint32_t height = 1024; 
 
+  // OpenGLの用意はしないよう指示する
   glfwWindowHint( GLFW_CLIENT_API, GLFW_NO_API );
+  // リサイズできないウィンドウを作るよう指示する
   glfwWindowHint( GLFW_RESIZABLE, GLFW_FALSE );
+  //ウィンドウを作る
   auto window = glfwCreateWindow(
     width,
     height,
@@ -70,12 +75,15 @@ int main( int argc, const char *argv[] ) {
     nullptr,
     nullptr
   );
+
+  // 指定したサイズでウィンドウを作れない事があるので、実際にできたウィンドウのサイズを取得する
   int width_s;
   int height_s;
   glfwGetWindowSize( window, &width_s, &height_s );
   width = width_s;
   height = height_s;
 
+  // サーフェスを作る
   VkSurfaceKHR surface;
   if( glfwCreateWindowSurface(
     instance,
@@ -84,6 +92,7 @@ int main( int argc, const char *argv[] ) {
     &surface
   ) != VK_SUCCESS ) std::abort();
  
+  // 以降のサーフェスの使い方はlibxcbを使った場合と同じ
   VkBool32 supported = VK_FALSE;
   if( vkGetPhysicalDeviceSurfaceSupportKHR(
     physical_device,
@@ -136,7 +145,10 @@ int main( int argc, const char *argv[] ) {
     }
   }
 
+  // サーフェスを捨てる
   vkDestroySurfaceKHR( instance, surface, nullptr );
+
+  // ウィンドウを捨てる
   glfwDestroyWindow( window );
 }
 

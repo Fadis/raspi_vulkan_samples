@@ -14,6 +14,7 @@ layout (location = 0) out vec4 output_color;
 
 
 void main()  {
+  // 頂点シェーダから受け取った色をそのままこのピクセルの色にする
   output_color = vec4( input_color, 1.0 );
 }
 

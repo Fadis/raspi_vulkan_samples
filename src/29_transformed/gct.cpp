@@ -37,15 +37,26 @@
 #include <gct/render_pass_begin_info.hpp>
 #include <gct/primitive.hpp>
 
+// スワップチェーンのイメージ毎に持つリソース
 struct fb_resources_t {
+  // スワップチェーンのイメージ
   std::shared_ptr< gct::image_t > color;
+  // スワップチェーンのイメージへのイメージビューを登録したフレームバッファ
   std::shared_ptr< gct::framebuffer_t > framebuffer;
+  // スワップチェーンのイメージが表示から外れたときに通知されるセマフォ
   std::shared_ptr< gct::semaphore_t > image_acquired;
+  // 描画を行うコマンドバッファの実行が完了したときに通知されるセマフォ
   std::shared_ptr< gct::semaphore_t > draw_complete;
+  // 描画に必要なコマンドを積むコマンドバッファ
   std::shared_ptr< gct::bound_command_buffer_t > command_buffer;
+  // 上のフレームバッファを使ってレンダーパスを開始するための設定
   gct::render_pass_begin_info_t render_pass_begin_info;
+  // 下のUniformBufferへのデスクリプタを持つデスクリプタセット
   std::shared_ptr< gct::descriptor_set_t > descriptor_set;
+  // 描画時にシェーダに渡すパラメータを書く転送用の一時バッファ
+  // (Raspberry PiのGPUでは2段階のコピーは必要ないがgctに1段階のコピーを実装していなかったので要る)
   std::shared_ptr< gct::buffer_t > uniform_staging;
+  // 描画時にシェーダに渡すパラメータを書いたユニフォームバッファ
   std::shared_ptr< gct::buffer_t > uniform;
 };
 
@@ -53,8 +64,11 @@ struct uniform_t {
   LIBGCT_SETTER( projection_matrix )
   LIBGCT_SETTER( camera_matrix )
   LIBGCT_SETTER( world_matrix )
+  // ワールド座標系への変換行列(これが回転する)
   glm::mat4 projection_matrix;
+  // 視点を基準とする座標系への変換行列
   glm::mat4 camera_matrix;
+  // 遠くの物ほど小さく見えるような歪みを与える投影行列
   glm::mat4 world_matrix;
 };
 
@@ -378,17 +392,24 @@ int main( int argc, const char *argv[] ) {
   auto camera_pos = glm::vec3{ 0.f, -3.f, 6.0f };
   float camera_angle = 0;//M_PI;
   auto uniforms = uniform_t()
+    // 透視投影のための行列を求める
     .set_projection_matrix(
       glm::perspective( 0.39959648408210363f, (float(width)/float(height)), 0.1f, 150.f )
     )
+    // 視点の位置を基準とする座標系への変換行列を求める
     .set_camera_matrix(
       glm::lookAt(
+	// 視点の位置
         camera_pos,
+	// この位置の方を向いている
         glm::vec3( 0.f, 0.f, 0.f ),
+        // この位置が上
         glm::vec3{ 0.f, camera_pos[ 1 ] + 100.f, 0.f }
       )
     )
+    // ワールド座標系への変換行列
     .set_world_matrix(
+      // 最初は単位行列、後から1フレーム毎に回転させる
       glm::mat4( 1.0 )
     );
 
@@ -398,6 +419,7 @@ int main( int argc, const char *argv[] ) {
     const auto begin_time = std::chrono::high_resolution_clock::now();
     angle += 1.f / 60.f;
     uniforms
+      // ワールド座標系への変換行列を回転させる
       .set_world_matrix(
         glm::mat4(
           std::cos( angle ), 0.f, -std::sin( angle ), 0.f,
@@ -414,11 +436,13 @@ int main( int argc, const char *argv[] ) {
       auto &fb = framebuffers[ image_index ];
       {
         auto recorder = sync.command_buffer->begin();
+	// UniformBufferに新しい値をコピー
         recorder.copy(
           uniforms,
           fb.uniform_staging,
           fb.uniform
         );
+	// UniformBufferへの書き込み完了を待つ
         recorder.barrier(
           vk::AccessFlagBits::eTransferRead,
           vk::AccessFlagBits::eShaderRead,
@@ -428,6 +452,7 @@ int main( int argc, const char *argv[] ) {
           { fb.uniform },
           {}
         );
+	// 描画する
         auto render_pass_token = recorder.begin_render_pass(
           fb.render_pass_begin_info,
           vk::SubpassContents::eInline

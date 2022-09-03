@@ -91,6 +91,7 @@ int main( int argc, const char *argv[] ) {
           .set_shader_module( shader )
           .set_specialization_info(
             gct::specialization_info_t< spec_t >()
+	      // ローカルグループのサイズを256x1にする
               .set_data(
                 spec_t{ 256, 1 }
               )
@@ -135,50 +136,38 @@ int main( int argc, const char *argv[] ) {
     }
   );
 
-  // コマンドバッファを作る
   const auto command_buffer = queue->get_command_pool()->allocate();
 
   {
-    // コマンドバッファにコマンドの記録を開始する
     auto rec = command_buffer->begin();
     
-    // 以降のパイプラインの実行ではこのデスクリプタセットを使う
     rec.bind_descriptor_set(
-      // コンピュートパイプラインの実行に使うデスクリプタセットを
       vk::PipelineBindPoint::eCompute,
       pipeline_layout,
-      // これにする
       descriptor_set
     );
     
-    // 以降のパイプラインの実行ではこのパイプラインを使う
     rec.bind_pipeline(
-      // これにする
       pipeline
     );
     
-    // コンピュートパイプラインを実行する
+    // 256個の値に対して実行する
     rec->dispatch( 1, 1, 1 );
   }
   
-  // コマンドバッファの内容をキューに流す
   command_buffer->execute(
     gct::submit_info_t()
   );
   
-  // コマンドバッファの内容の実行が完了するのを待つ
   command_buffer->wait_for_executed();
 
   std::vector< std::uint32_t > host;
   host.reserve( 256 );
   {
-    // ステージングバッファをプロセスのアドレス空間にマップする
     auto mapped = buffer->map< std::uint32_t >();
-    // ステージングバッファからホストのメモリにコピー
     std::copy( mapped.begin(), mapped.end(), std::back_inserter( host ) );
   }
   
-  // ホストのメモリの内容をJSONにしてダンプ
   nlohmann::json json = host;
   std::cout << json.dump( 2 ) << std::endl;
 }

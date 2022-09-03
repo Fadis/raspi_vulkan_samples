@@ -89,20 +89,31 @@ int main( int argc, const char *argv[] ) {
     std::abort();
   }
 
+  // スワップチェーンを作る
   const auto swapchain = device.createSwapchainKHRUnique(
     vk::SwapchainCreateInfoKHR()
       .setSurface( surface )
+      // スワップチェーンのイメージの数
       .setMinImageCount( std::max( surface_capabilities.minImageCount, 3u ) )
+      // スワップチェーンのイメージのフォーマット
       .setImageFormat( available_formats[ 0 ].format )
+      // スワップチェーンのイメージの色空間
       .setImageColorSpace( available_formats[ 0 ].colorSpace ) 
+      // スワップチェーンのイメージの大きさ
       .setImageExtent( surface_capabilities.currentExtent )
+      // レイヤーは1つ
       .setImageArrayLayers( 1u )
+      // グラフィクスパイプラインから色を吐くのに使える
       .setImageUsage( vk::ImageUsageFlagBits::eColorAttachment )
+      // 投げたイメージが投げた順にサーフェスに送られるようなスワップチェーン
       .setPresentMode( vk::PresentModeKHR::eFifo )
       .setClipped( false )
   );
 
+  // スワップチェーンのイメージを取得する
   const auto swapchain_images = device.getSwapchainImagesKHR( *swapchain );
+  
+  // スワップチェーンのイメージの数を表示する
   std::cout << "swapchain images : " << swapchain_images.size() << std::endl;
 }
 

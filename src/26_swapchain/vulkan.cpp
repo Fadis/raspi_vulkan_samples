@@ -103,27 +103,34 @@ int main( int argc, const char *argv[] ) {
     std::abort();
   }
 
+  // スワップチェーンを作る
   VkSwapchainCreateInfoKHR swapchain_create_info;
   swapchain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
   swapchain_create_info.pNext = nullptr;
   swapchain_create_info.flags = 0u;
   swapchain_create_info.surface = surface;
+  // スワップチェーンのイメージの数
   swapchain_create_info.minImageCount = std::max( surface_capabilities.minImageCount, 3u );
+  // スワップチェーンのイメージのフォーマット
   swapchain_create_info.imageFormat = available_formats[ 0 ].format;
+  // スワップチェーンのイメージの色空間
   swapchain_create_info.imageColorSpace = available_formats[ 0 ].colorSpace;
+  // スワップチェーンのイメージの大きさ
   swapchain_create_info.imageExtent.width = surface_capabilities.currentExtent.width;
   swapchain_create_info.imageExtent.height = surface_capabilities.currentExtent.height;
+  // レイヤーは1つ
   swapchain_create_info.imageArrayLayers = 1u;
+  // グラフィクスパイプラインから色を吐くのに使える
   swapchain_create_info.imageUsage = VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
   swapchain_create_info.imageSharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
   swapchain_create_info.queueFamilyIndexCount = 0u;
   swapchain_create_info.pQueueFamilyIndices = nullptr;
   swapchain_create_info.preTransform = VkSurfaceTransformFlagBitsKHR::VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
   swapchain_create_info.compositeAlpha = VkCompositeAlphaFlagBitsKHR::VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+  // 投げたイメージが投げた順にサーフェスに送られるようなスワップチェーン
   swapchain_create_info.presentMode = VkPresentModeKHR::VK_PRESENT_MODE_FIFO_KHR;
   swapchain_create_info.clipped = VK_FALSE;
   swapchain_create_info.oldSwapchain = VK_NULL_HANDLE;
-
   VkSwapchainKHR swapchain;
   if( vkCreateSwapchainKHR(
     device,
@@ -132,6 +139,7 @@ int main( int argc, const char *argv[] ) {
     &swapchain
   ) != VK_SUCCESS ) std::abort();
 
+  // スワップチェーンのイメージの個数を取得する
   std::uint32_t swapchain_image_count = 0u;
   if( vkGetSwapchainImagesKHR(
     device,
@@ -139,6 +147,7 @@ int main( int argc, const char *argv[] ) {
     &swapchain_image_count,
     nullptr
   ) != VK_SUCCESS ) std::abort();
+  // スワップチェーンのイメージを取得する
   std::vector< VkImage > swapchain_images( swapchain_image_count );
   if( vkGetSwapchainImagesKHR(
     device,
@@ -147,8 +156,10 @@ int main( int argc, const char *argv[] ) {
     swapchain_images.data()
   ) != VK_SUCCESS ) std::abort();
 
+  // スワップチェーンのイメージの数を表示する
   std::cout << "swapchain images : " << swapchain_images.size() << std::endl;
 
+  // スワップチェーンを捨てる
   vkDestroySwapchainKHR( device, swapchain, nullptr );
 }
 

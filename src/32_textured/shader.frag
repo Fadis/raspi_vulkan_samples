@@ -63,15 +63,22 @@ vec3 eotf( vec3 v ) {
 
 void main()  {
   const float pi = 3.141592653589793;
+  // 現在の位置から光源の位置への向きを表す単位長のベクトルを求める
   vec3 light_dir = normalize( uniforms.light_pos.xyz - input_position );
+  // 現在の位置から視点の位置への向きを表す単位長のベクトルを求める
   vec3 eye_dir = normalize( uniforms.eye_pos.xyz - input_position );
+  // ラスタライザで補間された法線は長さが単位長になっていない可能性があるので正規化する
   vec3 normal = normalize( input_normal );
+  // イメージをサンプリングしてこの位置における色を得る
   vec3 input_color = texture( base_color, input_texcoord ).rgb;
+  // ランバートモデルで拡散を求める
   vec3 diffuse = input_color * ( max( dot( light_dir, normal ), 0 ) /pi );
+  // GGXモデルで反射を求める
   vec3 specular = max( dot( light_dir, normal ), 0 ) * max( walter( light_dir, eye_dir, normal, 0.05, vec3( 1.f, 1.f, 1.f ) ), vec3( 0.0, 0.0, 0.0 ) );
+  // 光が届かない部分が完全な黒になると不自然なので少しだけ明るくする(環境光)
   vec3 ambient = input_color * 0.01;
+  // 光のエネルギーをsRGB色空間での色に変換して出力する
   output_color = vec4( eotf( ( diffuse + specular + ambient ) * uniforms.light_energy ), 1.0 );
-  //output_color = vec4( eotf( diffuse ), 1.0 );
 }
 
 

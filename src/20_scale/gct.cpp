@@ -28,10 +28,6 @@ struct spec_t {
   std::uint32_t local_y_size = 0u;
 };
 
-struct push_constant_t {
-  glm::mat4x4 tex_mat;
-};
-
 
 int main( int argc, const char *argv[] ) {
   const std::shared_ptr< gct::instance_t > instance(
@@ -78,12 +74,6 @@ int main( int argc, const char *argv[] ) {
   const auto pipeline_layout = device->get_pipeline_layout(
     gct::pipeline_layout_create_info_t()
       .add_descriptor_set_layout( descriptor_set_layout )
-      .add_push_constant_range(
-        vk::PushConstantRange()
-          .setStageFlags( vk::ShaderStageFlagBits::eCompute )
-          .setOffset( 0 )
-          .setSize( sizeof( push_constant_t ) )
-      )
   );
   const auto descriptor_pool = device->get_descriptor_pool(
     gct::descriptor_pool_create_info_t()
@@ -101,13 +91,11 @@ int main( int argc, const char *argv[] ) {
   const auto allocator = device->get_allocator();
 
 
-  // 画像の内容をバッファにロード
   const auto src_buffer = allocator->load_image(
     CMAKE_CURRENT_SOURCE_DIR "/test.png",
     true
   );
   
-  // 実行結果を受け取る為のバッファを作る
   const auto dest_buffer = allocator->create_pixel_buffer(
     vk::BufferUsageFlagBits::eTransferDst,
     VMA_MEMORY_USAGE_GPU_TO_CPU,
@@ -115,72 +103,49 @@ int main( int argc, const char *argv[] ) {
     src_buffer->get_format()
   );
 
-  // 入力イメージを作る
   auto src_image = allocator->create_image(
     gct::image_create_info_t()
       .set_basic(
         vk::ImageCreateInfo()
-          // 2次元で
           .setImageType( vk::ImageType::e2D )
-          // RGBA各8bitで
           .setFormat( vk::Format::eR8G8B8A8Unorm )
           .setExtent( { 1024, 1024, 1 } )
-          // ミップマップは無く
           .setMipLevels( 1 )
-          // レイヤーは1枚だけの
           .setArrayLayers( 1 )
-          // 1テクセルにつきサンプリング点を1つだけ持つ
           .setSamples( vk::SampleCountFlagBits::e1 )
-          // GPUが読みやすいように配置された
           .setTiling( vk::ImageTiling::eOptimal )
-          // 転送先とストレージイメージに使う
           .setUsage(
             vk::ImageUsageFlagBits::eTransferDst |
             vk::ImageUsageFlagBits::eSampled
           )
-          // 同時に複数のキューから操作しない
           .setSharingMode( vk::SharingMode::eExclusive )
           .setQueueFamilyIndexCount( 0 )
           .setPQueueFamilyIndices( nullptr )
-          // 初期状態は不定な
           .setInitialLayout( vk::ImageLayout::eUndefined )
       ),
-      // GPUだけから読める
       VMA_MEMORY_USAGE_GPU_ONLY
   );
 
-  // 出力イメージを作る
   auto dest_image = allocator->create_image(
     gct::image_create_info_t()
       .set_basic(
         vk::ImageCreateInfo()
-          // 2次元で
           .setImageType( vk::ImageType::e2D )
-          // RGBA各8bitで
           .setFormat( vk::Format::eR8G8B8A8Unorm )
-          // 1024x1024で
           .setExtent( { 1024, 1024, 1 } )
-          // ミップマップは無く
           .setMipLevels( 1 )
-          // レイヤーは1枚だけの
           .setArrayLayers( 1 )
-          // 1テクセルにつきサンプリング点を1つだけ持つ
           .setSamples( vk::SampleCountFlagBits::e1 )
-          // GPUが読みやすいように配置された
           .setTiling( vk::ImageTiling::eOptimal )
-          // 転送元とストレージイメージに使う
           .setUsage(
             vk::ImageUsageFlagBits::eTransferSrc |
             vk::ImageUsageFlagBits::eStorage
           )
-          // 初期状態は不定な
           .setInitialLayout( vk::ImageLayout::eUndefined )
       ),
-      // GPUだけから見える
       VMA_MEMORY_USAGE_GPU_ONLY
   );
 
-  // 入力イメージのイメージビューを作る
   auto src_view = 
     src_image->get_view(
       gct::image_view_create_info_t()
@@ -188,22 +153,16 @@ int main( int argc, const char *argv[] ) {
           vk::ImageViewCreateInfo()
             .setSubresourceRange(
               vk::ImageSubresourceRange()
-                // イメージの色のうち
                 .setAspectMask( vk::ImageAspectFlagBits::eColor )
-                // 最大のミップマップから
                 .setBaseMipLevel( 0 )
-                // 1枚の範囲
                 .setLevelCount( 1 )
-                // 最初のレイヤーから
                 .setBaseArrayLayer( 0 )
-                // 1枚の範囲
                 .setLayerCount( 1 )
             )
             .setViewType( gct::to_image_view_type( src_image->get_props().get_basic().imageType ) )
         )
         .rebuild_chain()
     );
-  // 出力イメージのイメージビューを作る
   auto dest_view = 
     dest_image->get_view(
       gct::image_view_create_info_t()
@@ -211,15 +170,10 @@ int main( int argc, const char *argv[] ) {
           vk::ImageViewCreateInfo()
             .setSubresourceRange(
               vk::ImageSubresourceRange()
-                // イメージの色のうち
                 .setAspectMask( vk::ImageAspectFlagBits::eColor )
-                // 最大のミップマップから
                 .setBaseMipLevel( 0 )
-                // 1枚の範囲
                 .setLevelCount( 1 )
-                // 最初のレイヤーから
                 .setBaseArrayLayer( 0 )
-                // 1枚の範囲
                 .setLayerCount( 1 )
             )
             .setViewType( gct::to_image_view_type( dest_image->get_props().get_basic().imageType ) )
@@ -232,13 +186,11 @@ int main( int argc, const char *argv[] ) {
     const auto command_buffer = queue->get_command_pool()->allocate();
     {
       auto rec = command_buffer->begin();
-      // 入力イメージの内容を書く
       rec.copy(
         src_buffer,
         src_image,
         vk::ImageLayout::eShaderReadOnlyOptimal
       );
-      // イメージのレイアウトを汎用に変更
       rec.convert_image( dest_image, vk::ImageLayout::eGeneral );
     }
     command_buffer->execute(
@@ -268,12 +220,10 @@ int main( int argc, const char *argv[] ) {
         )
     );
 
-  // デスクリプタセットを更新
   descriptor_set->update(
     {
       gct::write_descriptor_set_t()
         .set_basic(
-          // このデスクリプタを
           (*descriptor_set)[ "src_texture" ]
         )
         .add_image(
@@ -284,13 +234,11 @@ int main( int argc, const char *argv[] ) {
                   src_image->get_layout().get_uniform_layout()
                 )
             )
-            // このイメージビューにする
             .set_image_view( src_view )
             .set_sampler( sampler )
         ),
       gct::write_descriptor_set_t()
         .set_basic(
-          // このデスクリプタを
           (*descriptor_set)[ "dest_image" ]
         )
         .add_image(
@@ -301,13 +249,11 @@ int main( int argc, const char *argv[] ) {
                   dest_image->get_layout().get_uniform_layout()
                 )
             )
-            // このイメージビューにする
             .set_image_view( dest_view )
         ),
     }
   );
 
-  // パイプラインを作る
   const auto pipeline = pipeline_cache->get_pipeline(
     gct::compute_pipeline_create_info_t()
       .set_stage(
@@ -316,7 +262,6 @@ int main( int argc, const char *argv[] ) {
           .set_specialization_info(
             gct::specialization_info_t< spec_t >()
               .set_data(
-                // ワークグループを16x16にする
                 spec_t{ 16, 16 }
               )
               .add_map< std::uint32_t >( 1, offsetof( spec_t, local_x_size ) )
@@ -326,22 +271,6 @@ int main( int argc, const char *argv[] ) {
       .set_layout( pipeline_layout )
   );
 
-  push_constant_t push_constant;
-  push_constant.tex_mat =
-    glm::mat4x4(
-      std::cos( M_PI / 4 ), std::sin( M_PI / 4 ), 0.f, 0.f,
-      -std::sin( M_PI / 4 ), std::cos( M_PI / 4 ), 0.f, 0.f,
-      0.f, 0.f, 1.f, 0.f,
-      0.f, 0.f, 0.f, 1.f
-    ) *
-    glm::mat4x4(
-      2.f, 0.f, 0.f, 0.f,
-      0.f, 2.f, 0.f, 0.f,
-      0.f, 0.f, 2.f, 0.f,
-      0.f, 0.f, 0.f, 1.f
-    );
-
-
   {
 
     const auto command_buffer = queue->get_command_pool()->allocate();
@@ -349,30 +278,18 @@ int main( int argc, const char *argv[] ) {
     {
       auto rec = command_buffer->begin();
     
-      // このデスクリプタセットを使う
       rec.bind_descriptor_set(
         vk::PipelineBindPoint::eCompute,
         pipeline_layout,
         descriptor_set
       );
     
-      // このパイプラインを使う
       rec.bind_pipeline(
         pipeline
       );
  
-      rec->pushConstants(
-        **pipeline_layout,
-        vk::ShaderStageFlagBits::eCompute,
-        0u,
-        sizeof( push_constant_t ),
-        reinterpret_cast< void* >( &push_constant )
-      );
-   
-      // 16x16のワークグループを64x64個実行 = 1024x1024
       rec->dispatch( 64, 64, 1 );
 
-      // シェーダから出力イメージへの書き込みが完了した後で
       rec.barrier(
         vk::AccessFlagBits::eShaderWrite,
         vk::AccessFlagBits::eTransferRead,
@@ -383,7 +300,6 @@ int main( int argc, const char *argv[] ) {
         { dest_image }
       );
 
-      // CPUから見えるバッファに出力イメージの内容をコピー
       rec.copy(
         dest_image,
         dest_buffer
@@ -395,7 +311,6 @@ int main( int argc, const char *argv[] ) {
     command_buffer->wait_for_executed();
   }
 
-  // バッファの内容を画像としてファイルに保存
   dest_buffer->dump_image( "out.png" );
 
 }

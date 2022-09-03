@@ -149,7 +149,6 @@ int main( int argc, const char *argv[] ) {
   create_info.width = 1024;
   create_info.height = 1024;
   create_info.layers = 1;
-
   VkFramebuffer framebuffer;
   if( vkCreateFramebuffer(
     device,
@@ -158,6 +157,7 @@ int main( int argc, const char *argv[] ) {
     &framebuffer
   ) != VK_SUCCESS ) abort();
 
+  // フレームバッファを捨てる
   vkDestroyFramebuffer(
     device,
     framebuffer,

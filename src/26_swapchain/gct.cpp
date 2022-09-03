@@ -72,8 +72,13 @@ int main( int argc, const char *argv[] ) {
     gct::device_create_info_t()
   );
   
+  // スワップチェーンを作る
   auto swapchain = device->get_swapchain( surface );
+
+  // スワップチェーンのイメージを取得する
   auto swapchain_images = swapchain->get_images();
+  
+  // スワップチェーンのイメージの数を表示する
   std::cout << "swapchain images : " << swapchain_images.size() << std::endl;
 
 }

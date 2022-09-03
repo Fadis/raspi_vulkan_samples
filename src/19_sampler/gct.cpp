@@ -100,13 +100,11 @@ int main( int argc, const char *argv[] ) {
   const auto allocator = device->get_allocator();
 
 
-  // 画像の内容をバッファにロード
   const auto src_buffer = allocator->load_image(
     CMAKE_CURRENT_SOURCE_DIR "/test.png",
     true
   );
   
-  // 実行結果を受け取る為のバッファを作る
   const auto dest_buffer = allocator->create_pixel_buffer(
     vk::BufferUsageFlagBits::eTransferDst,
     VMA_MEMORY_USAGE_GPU_TO_CPU,
@@ -114,72 +112,49 @@ int main( int argc, const char *argv[] ) {
     src_buffer->get_format()
   );
 
-  // 入力イメージを作る
   auto src_image = allocator->create_image(
     gct::image_create_info_t()
       .set_basic(
         vk::ImageCreateInfo()
-          // 2次元で
           .setImageType( vk::ImageType::e2D )
-          // RGBA各8bitで
-          .setFormat( vk::Format::eR8G8B8A8Srgb )
+          .setFormat( vk::Format::eR8G8B8A8Unorm )
           .setExtent( { 1024, 1024, 1 } )
-          // ミップマップは無く
           .setMipLevels( 1 )
-          // レイヤーは1枚だけの
           .setArrayLayers( 1 )
-          // 1テクセルにつきサンプリング点を1つだけ持つ
           .setSamples( vk::SampleCountFlagBits::e1 )
-          // GPUが読みやすいように配置された
           .setTiling( vk::ImageTiling::eOptimal )
-          // 転送先とストレージイメージに使う
           .setUsage(
             vk::ImageUsageFlagBits::eTransferDst |
             vk::ImageUsageFlagBits::eSampled
           )
-          // 同時に複数のキューから操作しない
           .setSharingMode( vk::SharingMode::eExclusive )
           .setQueueFamilyIndexCount( 0 )
           .setPQueueFamilyIndices( nullptr )
-          // 初期状態は不定な
           .setInitialLayout( vk::ImageLayout::eUndefined )
       ),
-      // GPUだけから読める
       VMA_MEMORY_USAGE_GPU_ONLY
   );
 
-  // 出力イメージを作る
   auto dest_image = allocator->create_image(
     gct::image_create_info_t()
       .set_basic(
         vk::ImageCreateInfo()
-          // 2次元で
           .setImageType( vk::ImageType::e2D )
-          // RGBA各8bitで
-          .setFormat( vk::Format::eR8G8B8A8Srgb )
-          // 1024x1024で
+          .setFormat( vk::Format::eR8G8B8A8Unorm )
           .setExtent( { 1024, 1024, 1 } )
-          // ミップマップは無く
           .setMipLevels( 1 )
-          // レイヤーは1枚だけの
           .setArrayLayers( 1 )
-          // 1テクセルにつきサンプリング点を1つだけ持つ
           .setSamples( vk::SampleCountFlagBits::e1 )
-          // GPUが読みやすいように配置された
           .setTiling( vk::ImageTiling::eOptimal )
-          // 転送元とストレージイメージに使う
           .setUsage(
             vk::ImageUsageFlagBits::eTransferSrc |
             vk::ImageUsageFlagBits::eStorage
           )
-          // 初期状態は不定な
           .setInitialLayout( vk::ImageLayout::eUndefined )
       ),
-      // GPUだけから見える
       VMA_MEMORY_USAGE_GPU_ONLY
   );
 
-  // 入力イメージのイメージビューを作る
   auto src_view = 
     src_image->get_view(
       gct::image_view_create_info_t()
@@ -187,22 +162,16 @@ int main( int argc, const char *argv[] ) {
           vk::ImageViewCreateInfo()
             .setSubresourceRange(
               vk::ImageSubresourceRange()
-                // イメージの色のうち
                 .setAspectMask( vk::ImageAspectFlagBits::eColor )
-                // 最大のミップマップから
                 .setBaseMipLevel( 0 )
-                // 1枚の範囲
                 .setLevelCount( 1 )
-                // 最初のレイヤーから
                 .setBaseArrayLayer( 0 )
-                // 1枚の範囲
                 .setLayerCount( 1 )
             )
             .setViewType( gct::to_image_view_type( src_image->get_props().get_basic().imageType ) )
         )
         .rebuild_chain()
     );
-  // 出力イメージのイメージビューを作る
   auto dest_view = 
     dest_image->get_view(
       gct::image_view_create_info_t()
@@ -210,15 +179,10 @@ int main( int argc, const char *argv[] ) {
           vk::ImageViewCreateInfo()
             .setSubresourceRange(
               vk::ImageSubresourceRange()
-                // イメージの色のうち
                 .setAspectMask( vk::ImageAspectFlagBits::eColor )
-                // 最大のミップマップから
                 .setBaseMipLevel( 0 )
-                // 1枚の範囲
                 .setLevelCount( 1 )
-                // 最初のレイヤーから
                 .setBaseArrayLayer( 0 )
-                // 1枚の範囲
                 .setLayerCount( 1 )
             )
             .setViewType( gct::to_image_view_type( dest_image->get_props().get_basic().imageType ) )
@@ -231,13 +195,11 @@ int main( int argc, const char *argv[] ) {
     const auto command_buffer = queue->get_command_pool()->allocate();
     {
       auto rec = command_buffer->begin();
-      // 入力イメージの内容を書く
       rec.copy(
         src_buffer,
         src_image,
         vk::ImageLayout::eShaderReadOnlyOptimal
       );
-      // イメージのレイアウトを汎用に変更
       rec.convert_image( dest_image, vk::ImageLayout::eGeneral );
     }
     command_buffer->execute(
@@ -246,23 +208,37 @@ int main( int argc, const char *argv[] ) {
     command_buffer->wait_for_executed();
   }
 
+  // サンプラーを作る
   auto sampler =
     device->get_sampler(
       gct::sampler_create_info_t()
         .set_basic(
           vk::SamplerCreateInfo()
+            // 拡大するときは線形補間
             .setMagFilter( vk::Filter::eLinear )
+            // 縮小する時も線形補間
             .setMinFilter( vk::Filter::eLinear )
+            // ミップマップレベル間での合成も線形補間
             .setMipmapMode( vk::SamplerMipmapMode::eLinear )
+            // 横方向に範囲外を読んだら境界色を返す
             .setAddressModeU( vk::SamplerAddressMode::eClampToBorder )
+            // 縦方向に範囲外を読んだら境界色を返す
             .setAddressModeV( vk::SamplerAddressMode::eClampToBorder )
+            // 奥行き方向に範囲外を読んだら境界色を返す
             .setAddressModeW( vk::SamplerAddressMode::eClampToBorder )
+            // 異方性フィルタリングを使わない
             .setAnisotropyEnable( false )
+            // 比較演算を使わない
             .setCompareEnable( false )
+            // ミップマップの選択にバイアスをかけない
             .setMipLodBias( 0.f )
+            // 最小のミップマップレベル(最も大きい画像)は0枚目
             .setMinLod( 0.f )
+            // 最大のミップマップレベル(最も小さい画像)は5枚目
             .setMaxLod( 5.f )
+            // 境界色は不透明の白
             .setBorderColor( vk::BorderColor::eFloatOpaqueWhite )
+            // 画像の端が(1.0,1.0)になるようなテクスチャ座標を使う
             .setUnnormalizedCoordinates( false )
         )
     );
@@ -285,11 +261,11 @@ int main( int argc, const char *argv[] ) {
             )
             // このイメージビューにする
             .set_image_view( src_view )
+	    // このサンプラーにする
             .set_sampler( sampler )
         ),
       gct::write_descriptor_set_t()
         .set_basic(
-          // このデスクリプタを
           (*descriptor_set)[ "dest_image" ]
         )
         .add_image(
@@ -300,13 +276,11 @@ int main( int argc, const char *argv[] ) {
                   dest_image->get_layout().get_uniform_layout()
                 )
             )
-            // このイメージビューにする
             .set_image_view( dest_view )
         ),
     }
   );
 
-  // パイプラインを作る
   const auto pipeline = pipeline_cache->get_pipeline(
     gct::compute_pipeline_create_info_t()
       .set_stage(
@@ -315,7 +289,6 @@ int main( int argc, const char *argv[] ) {
           .set_specialization_info(
             gct::specialization_info_t< spec_t >()
               .set_data(
-                // ワークグループを16x16にする
                 spec_t{ 16, 16 }
               )
               .add_map< std::uint32_t >( 1, offsetof( spec_t, local_x_size ) )
@@ -326,11 +299,30 @@ int main( int argc, const char *argv[] ) {
   );
 
   push_constant_t push_constant;
-  push_constant.tex_mat = glm::mat4x4(
+  push_constant.tex_mat =
+  glm::mat4x4(
+    1.f, 0.f, 0.f,  0.f,
+    0.f, 1.f, 0.f,  0.f,
+    0.f, 0.f, 1.f,  0.f,
+    0.5f, 0.5f, 0.f,  1.f
+  ) *
+  glm::mat4x4(
     std::cos( M_PI / 4 ), std::sin( M_PI / 4 ), 0.f, 0.f,
     -std::sin( M_PI / 4 ), std::cos( M_PI / 4 ), 0.f, 0.f,
     0.f, 0.f, 1.f, 0.f,
     0.f, 0.f, 0.f, 1.f
+  ) *
+  glm::mat4x4(
+    1.f, 0.f, 0.f,  0.f,
+    0.f, 1.f, 0.f,  0.f,
+    0.f, 0.f, 1.f,  0.f,
+    -0.5f, -0.5f, 0.f,  1.f
+  ) *
+  glm::mat4x4(
+    2.f, 0.f, 0.f,  0.f,
+    0.f, 2.f, 0.f,  0.f,
+    0.f, 0.f, 2.f,  0.f,
+    0.f, 0.f, 0.f,  1.f
   );
 
   {
@@ -340,14 +332,12 @@ int main( int argc, const char *argv[] ) {
     {
       auto rec = command_buffer->begin();
     
-      // このデスクリプタセットを使う
       rec.bind_descriptor_set(
         vk::PipelineBindPoint::eCompute,
         pipeline_layout,
         descriptor_set
       );
     
-      // このパイプラインを使う
       rec.bind_pipeline(
         pipeline
       );
@@ -360,10 +350,8 @@ int main( int argc, const char *argv[] ) {
         reinterpret_cast< void* >( &push_constant )
       );
    
-      // 16x16のワークグループを64x64個実行 = 1024x1024
       rec->dispatch( 64, 64, 1 );
 
-      // シェーダから出力イメージへの書き込みが完了した後で
       rec.barrier(
         vk::AccessFlagBits::eShaderWrite,
         vk::AccessFlagBits::eTransferRead,
@@ -374,7 +362,6 @@ int main( int argc, const char *argv[] ) {
         { dest_image }
       );
 
-      // CPUから見えるバッファに出力イメージの内容をコピー
       rec.copy(
         dest_image,
         dest_buffer
@@ -386,7 +373,6 @@ int main( int argc, const char *argv[] ) {
     command_buffer->wait_for_executed();
   }
 
-  // バッファの内容を画像としてファイルに保存
   dest_buffer->dump_image( "out.png" );
 
 }

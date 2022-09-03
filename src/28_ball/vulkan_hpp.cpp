@@ -329,67 +329,57 @@ int main( int argc, const char *argv[] ) {
       const auto draw_complete = **sync.draw_complete;
       const auto command_buffer = **sync.command_buffer;
       sync.command_buffer->wait_for_executed();
+      
+      // スワップチェーンからイメージを取得し
       auto image_index = swapchain->acquire_next_image( sync.image_acquired );
+      // そのイメージへのイメージビューを登録したフレームバッファを使ってレンダーパスを開始
       auto &fb = framebuffers[ image_index ];
       const auto &render_pass_begin_info = fb.render_pass_begin_info.rebuild_chain().get_basic();
       {
         auto recorder = sync.command_buffer->begin();
 
-        // レンダーパスを開始する
         command_buffer.beginRenderPass(
           render_pass_begin_info,
           vk::SubpassContents::eInline
         );
 
-        // このパイプラインを使う
         command_buffer.bindPipeline(
           vk::PipelineBindPoint::eGraphics,
           pipeline
         );
        
-        // このデスクリプタセットを使う
         command_buffer.bindDescriptorSets(
           vk::PipelineBindPoint::eGraphics,
           pipeline_layout,
-          // set=0デスクリプタセットを
           0,
-          // これにする
           descriptor_set,
           {}
         );
 
-        // この頂点バッファを使う
-        // binding 0番がvertex_bufferの内容になる
         command_buffer.bindVertexBuffers(
-          // binding 0番の頂点バッファの内容を
           0,
-          // これにする
           { vertex_buffer },
-          // バッファの先頭から使う
           { 0 }
         );
 
-	// パイプラインを実行する
+	// 描画を行う
         command_buffer.draw(
-          // 頂点バッファには頂点が3個あって
           vertex_count,
-          // それを1回繰り返す
           1,
-          // 最初の頂点はバッファの0番目の頂点で
           0,
-          // 繰り返し回数は0からカウント
           0
         );
 
-	// レンダーパスを終了する
-        // サブパスがまだある時はvkCmdEndRenderPassする前にvkCmdNextSubpass
         command_buffer.endRenderPass();
       }
+      // スワップチェーンのイメージが表示から外れたらこれらのコマンドを実行
+      // 実行が完了したら描画完了を別のセマフォに通知
       sync.command_buffer->execute(
         gct::submit_info_t()
           .add_wait_for( sync.image_acquired, vk::PipelineStageFlagBits::eColorAttachmentOutput )
           .add_signal_to( sync.draw_complete )
       );
+      // 描画完了の通知がセマフォに届いたらイメージをサーフェスに送る
       queue->present(
         gct::present_info_t()
           .add_wait_for( sync.draw_complete )

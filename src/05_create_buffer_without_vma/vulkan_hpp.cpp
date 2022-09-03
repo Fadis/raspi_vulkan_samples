@@ -60,13 +60,14 @@ int main( int argc, const char *argv[] ) {
 
   // バッファに必要なメモリの要件を調べる
   auto buffer_memory_reqs = device.getBufferMemoryRequirements( *buffer );
-
+  std::cout << buffer_size << "バイトのデータを置くバッファに必要なメモリの要件" << std::endl;
   std::cout << nlohmann::json( buffer_memory_reqs ).dump( 2 ) << std::endl;
 
   // 利用可能なメモリタイプの中からStorageBufferに使えてCPUから見える物を探す
   // VideoCore VIにはメモリタイプが1つしか無いのでこれは必ず0になる
   std::uint32_t memory_index = 0u;
   for( std::uint32_t i = 0u; i != memory_props.memoryTypeCount; ++i ) {
+    // StorageBufferに使えて、かつCPUから見えるメモリタイプ
     if( memory_props.memoryTypes[ i ].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible ) {
       if( ( buffer_memory_reqs.memoryTypeBits >> i ) & 0x1 ) {
         memory_index = i;
@@ -74,7 +75,6 @@ int main( int argc, const char *argv[] ) {
       }
     }
   }
-
   std::cout << memory_index << "番目のメモリタイプが選ばれました" << std::endl;
 
   

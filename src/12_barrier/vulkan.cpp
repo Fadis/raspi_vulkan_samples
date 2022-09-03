@@ -131,22 +131,17 @@ int main( int argc, const char *argv[] ) {
   const auto buffer = VkBuffer( **gct_buffer );
 
   VkPushConstantRange push_constant_range;
-  // コンピュートシェーダで
   push_constant_range.stageFlags = VkShaderStageFlagBits::VK_SHADER_STAGE_COMPUTE_BIT;
   push_constant_range.offset = 0u;
-  // push_constant_t型のサイズのプッシュコンスタントを使う
   push_constant_range.size = sizeof( push_constant_t );
   
-  // パイプラインレイアウトを作る
   VkDescriptorSetLayout descriptor_set_layout_ = descriptor_set_layout;
   VkPipelineLayoutCreateInfo pipeline_layout_create_info;
   pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipeline_layout_create_info.pNext = nullptr;
   pipeline_layout_create_info.flags = 0u;
-  // このデスクリプタセットレイアウトのデスクリプタセットと組み合わせる
   pipeline_layout_create_info.setLayoutCount = 1u;
   pipeline_layout_create_info.pSetLayouts = &descriptor_set_layout_;
-  // プッシュコンスタントを使う
   pipeline_layout_create_info.pushConstantRangeCount = 1u;
   pipeline_layout_create_info.pPushConstantRanges = &push_constant_range;
   VkPipelineLayout pipeline_layout;
@@ -157,7 +152,6 @@ int main( int argc, const char *argv[] ) {
     &pipeline_layout
   ) != VK_SUCCESS ) abort();
 
-  // シェーダの特殊化パラメータの配置
   std::vector< VkSpecializationMapEntry > specialization_map( 2u );
   specialization_map[ 0 ].constantID = 1u;
   specialization_map[ 0 ].offset = offsetof( spec_t, local_x_size );
@@ -166,7 +160,6 @@ int main( int argc, const char *argv[] ) {
   specialization_map[ 1 ].offset = offsetof( spec_t, local_y_size );
   specialization_map[ 1 ].size = sizeof( std::uint32_t );
   
-  // シェーダの特殊化パラメータの値
   const spec_t specialization_values{ 6, 1 };
  
   VkSpecializationInfo specialization_info;
@@ -175,29 +168,21 @@ int main( int argc, const char *argv[] ) {
   specialization_info.dataSize = sizeof( spec_t );
   specialization_info.pData = &specialization_values;
 
-  // パイプラインの設定
   VkComputePipelineCreateInfo pipeline_create_info;
   pipeline_create_info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
   pipeline_create_info.pNext = nullptr;
   pipeline_create_info.flags = 0u;
-  // シェーダの設定
   pipeline_create_info.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   pipeline_create_info.stage.pNext = nullptr;
   pipeline_create_info.stage.flags = 0u;
-  // コンピュートシェーダに
   pipeline_create_info.stage.stage = VkShaderStageFlagBits::VK_SHADER_STAGE_COMPUTE_BIT;
-  // このシェーダを使う
   pipeline_create_info.stage.module = shader;
-  // main関数から実行する
   pipeline_create_info.stage.pName = "main";
-  // シェーダの特殊化パラメータを設定
   pipeline_create_info.stage.pSpecializationInfo = &specialization_info;
-  // このレイアウトのパイプラインを作る
   pipeline_create_info.layout = pipeline_layout;
   pipeline_create_info.basePipelineHandle = VK_NULL_HANDLE;
   pipeline_create_info.basePipelineIndex = 0;
 
-  // パイプラインを作る
   VkPipeline pipeline;
   if( vkCreateComputePipelines(
     device,
@@ -208,12 +193,10 @@ int main( int argc, const char *argv[] ) {
     &pipeline
   ) != VK_SUCCESS ) abort();
  
-  // コマンドプールを作る 
   VkCommandPoolCreateInfo command_pool_create_info;
   command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
   command_pool_create_info.pNext = nullptr;
   command_pool_create_info.flags = 0u;
-  // このキューファミリ用のやつを
   command_pool_create_info.queueFamilyIndex = queue_family_index;
   VkCommandPool command_pool;
   if( vkCreateCommandPool(
@@ -223,16 +206,12 @@ int main( int argc, const char *argv[] ) {
     &command_pool
   ) != VK_SUCCESS ) abort();
 
-  // コマンドバッファを確保する
   VkCommandBufferAllocateInfo command_buffer_allocate_info;
   command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   command_buffer_allocate_info.pNext = nullptr;
-  // このコマンドプールから
   command_buffer_allocate_info.commandPool = command_pool;
-  // 直接キューにsubmitする用のやつを
   command_buffer_allocate_info.level =
     VkCommandBufferLevel::VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  // 1個
   command_buffer_allocate_info.commandBufferCount = 1u;
   VkCommandBuffer command_buffer;
   if( vkAllocateCommandBuffers(
@@ -240,7 +219,6 @@ int main( int argc, const char *argv[] ) {
     &command_buffer_allocate_info,
     &command_buffer
   ) != VK_SUCCESS ) abort();
-  // フェンスを作る
   VkFenceCreateInfo fence_create_info;
   fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
   fence_create_info.pNext = nullptr;
@@ -256,7 +234,6 @@ int main( int argc, const char *argv[] ) {
   push_constant_t push_constant;
   push_constant.value = 3.f;
 
-  // コマンドバッファにコマンドの記録を開始する
   VkCommandBufferBeginInfo command_buffer_begin_info;
   command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   command_buffer_begin_info.pNext = nullptr;
@@ -267,30 +244,25 @@ int main( int argc, const char *argv[] ) {
     &command_buffer_begin_info
   ) != VK_SUCCESS ) abort();
 
-  // 以降のパイプラインの実行ではこのデスクリプタセットを使う
   VkDescriptorSet raw_descriptor_set = descriptor_set;
   vkCmdBindDescriptorSets(
     command_buffer,
-    // コンピュートパイプラインの実行に使うデスクリプタセットを
     VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE,
     pipeline_layout,
     0u,
     1u,
-    // これにする
     &raw_descriptor_set,
     0u,
     nullptr
   );
 
-  // 以降のパイプラインの実行ではこのパイプラインを使う
   vkCmdBindPipeline(
     command_buffer,
-    // コンピュートパイプラインを
     VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE,
-    // これにする
     pipeline
   );
 
+  // 以降のDispatchではプッシュコンスタントの値を3にする
   vkCmdPushConstants(
     command_buffer,
     pipeline_layout,
@@ -300,12 +272,15 @@ int main( int argc, const char *argv[] ) {
     reinterpret_cast< const void* >( &push_constant )
   );
 
-  // コンピュートパイプラインを実行する
+  // 6個の値に対して実行する
   vkCmdDispatch(
     command_buffer,
     1, 1, 1
   );
 
+  // ここまでのbufferを触るシェーダが完了するまで以降のbufferを触るシェーダは
+  // 開始してはいけない
+  // 要するに上のDispatchが完了するまで下のDispatchが始まらないようにする
   {
     VkBufferMemoryBarrier buffer_memory_barrier;
     buffer_memory_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
@@ -331,8 +306,8 @@ int main( int argc, const char *argv[] ) {
     );
   }
 
+  // 以降のDispatchではプッシュコンスタントの値を2にする
   push_constant.value = 2.f;
-
   vkCmdPushConstants(
     command_buffer,
     pipeline_layout,
@@ -342,18 +317,16 @@ int main( int argc, const char *argv[] ) {
     reinterpret_cast< const void* >( &push_constant )
   );
 
-  // コンピュートパイプラインを実行する
+  // 12個の値に対して実行する
   vkCmdDispatch(
     command_buffer,
     2, 1, 1
   );
 
-  // コマンドバッファにコマンドの記録を終了する
   if( vkEndCommandBuffer(
     command_buffer
   ) != VK_SUCCESS ) abort();
 
-  // コマンドバッファの内容をキューに流す
   VkSubmitInfo submit_info;
   submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   submit_info.pNext = nullptr;
@@ -361,7 +334,6 @@ int main( int argc, const char *argv[] ) {
   submit_info.pWaitSemaphores = nullptr;
   submit_info.pWaitDstStageMask = nullptr;
   submit_info.commandBufferCount = 1u;
-  // このコマンドバッファの内容を流す
   submit_info.pCommandBuffers = &command_buffer;
   submit_info.signalSemaphoreCount = 0u;
   submit_info.pSignalSemaphores = nullptr;
@@ -369,30 +341,23 @@ int main( int argc, const char *argv[] ) {
     queue,
     1u,
     &submit_info,
-    // 実行し終わったらこのフェンスに通知
     fence
   ) != VK_SUCCESS ) abort();
 
-  // フェンスが完了通知を受けるのを待つ
   if( vkWaitForFences(
     device,
     1u,
-    // このフェンスを待つ
     &fence,
-    // 全部のフェンスに完了通知が来るまで待つ
     true,
-    // 1秒でタイムアウト
     1 * 1000 * 1000 * 1000
   ) != VK_SUCCESS ) abort();
 
-  // フェンスを捨てる
   vkDestroyFence(
     device,
     fence,
     nullptr
   );
 
-  // コマンドバッファを捨てる
   vkFreeCommandBuffers(
     device,
     command_pool,
@@ -400,7 +365,6 @@ int main( int argc, const char *argv[] ) {
     &command_buffer
   );
 
-  // コマンドプールを捨てる
   vkDestroyCommandPool(
     device,
     command_pool,

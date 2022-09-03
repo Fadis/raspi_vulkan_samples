@@ -92,7 +92,7 @@ int main( int argc, const char *argv[] ) {
     .setDataSize( sizeof( spec_t ) )
     .setPData( &specialization_values );
 
-  // パイプラインのコンパイルにかかった時間を測れるようにする
+  // パイプラインのコンパイルにかかった時間を計測する
   std::vector< vk::PipelineCreationFeedbackEXT > feedback_( 2u );
   const auto feedback =
      vk::PipelineCreationFeedbackCreateInfoEXT()
@@ -115,18 +115,17 @@ int main( int argc, const char *argv[] ) {
       .setLayout( *pipeline_layout )
   };
 
-  // パイプラインキャッシュを保存するファイルのパス
+  // 既にパイプラインキャッシュを保存したファイルがあったら読む
   std::filesystem::path pipeline_cache_filename(
     CMAKE_CURRENT_BINARY_DIR "/pipeline_cache"
   );
-
-  // 既にパイプラインキャッシュのファイルがあったらmmap
   std::optional< gct::mmaped_file > pipeline_cache_data;
   if( std::filesystem::exists( pipeline_cache_filename ) ) {
     pipeline_cache_data = gct::mmaped_file( pipeline_cache_filename );
   }
 
   // パイプラインキャッシュを作る
+  // 既にファイルがあった場合はその内容を使う
   const auto pipeline_cache = device.createPipelineCacheUnique(
     pipeline_cache_data ?
       vk::PipelineCacheCreateInfo()
@@ -135,7 +134,7 @@ int main( int argc, const char *argv[] ) {
       vk::PipelineCacheCreateInfo()
   );
 
-  // パプラインキャッシュを付けてパイプラインを作る
+  // パイプラインキャッシュを付けてパイプラインを作る
   auto wrapped = device.createComputePipelinesUnique(
     *pipeline_cache,
     pipeline_create_info

@@ -124,7 +124,6 @@ int main( int argc, const char *argv[] ) {
   const auto pipeline_layout = VkPipelineLayout( **gct_pipeline_layout );
   const auto command_pool = VkCommandPool( **gct_command_pool );
 
-  // パイプラインを作る
   const auto gct_pipeline = gct_pipeline_cache->get_pipeline(
     gct::compute_pipeline_create_info_t()
       .set_stage(
@@ -143,80 +142,64 @@ int main( int argc, const char *argv[] ) {
   );
   const auto pipeline = VkPipeline( **gct_pipeline );
 
-  // 入力用のバッファを作る
   const auto gct_src_buffer = gct_allocator->create_buffer(
     gct::buffer_create_info_t()
       .set_basic(
         vk::BufferCreateInfo()
-	  // 1024x1024ピクセル並べられる大きさの
           .setSize( 1024u * 1024u * 4u )
-	  // コピー元に使える
           .setUsage( vk::BufferUsageFlagBits::eTransferSrc )
       ),
-    // CPUからGPUに送るのに適した
     VMA_MEMORY_USAGE_CPU_TO_GPU
   );
   const auto src_buffer = VkBuffer( **gct_src_buffer );
 
-  // 入力用のイメージを作る
   auto gct_src_image = gct_allocator->create_image(
     gct::image_create_info_t()
       .set_basic(
         vk::ImageCreateInfo()
           .setImageType( vk::ImageType::e2D )
-          .setFormat( vk::Format::eR8G8B8A8Srgb )
-	  // 1024x1024の
+          .setFormat( vk::Format::eR8G8B8A8Unorm )
           .setExtent( { 1024, 1024, 1 } )
           .setMipLevels( 1 )
           .setArrayLayers( 1 )
           .setSamples( vk::SampleCountFlagBits::e1 )
           .setTiling( vk::ImageTiling::eOptimal )
-	  // コピー先とテクスチャに使える
           .setUsage(
             vk::ImageUsageFlagBits::eTransferDst |
             vk::ImageUsageFlagBits::eSampled
           )
       ),
-      // GPUから触れれば良い
       VMA_MEMORY_USAGE_GPU_ONLY
   );
   const auto src_image = VkImage( **gct_src_image );
 
-  // 出力用のバッファを作る
   const auto gct_dest_buffer = gct_allocator->create_buffer(
     gct::buffer_create_info_t()
       .set_basic(
         vk::BufferCreateInfo()
-	  // 1024x1024ピクセル並べられる大きさの
           .setSize( 1024u * 1024u * 4u )
-	  // コピー先に使える
           .setUsage( vk::BufferUsageFlagBits::eTransferDst )
       ),
-    // GPUからCPUに送るのに適した
     VMA_MEMORY_USAGE_GPU_TO_CPU
   );
   const auto dest_buffer = VkBuffer( **gct_dest_buffer );
 
-  // 出力用のイメージを作る
   auto gct_dest_image = gct_allocator->create_image(
     gct::image_create_info_t()
       .set_basic(
         vk::ImageCreateInfo()
           .setImageType( vk::ImageType::e2D )
-          .setFormat( vk::Format::eR8G8B8A8Srgb )
-	  // 1024x1024の
+          .setFormat( vk::Format::eR8G8B8A8Unorm )
           .setExtent( { 1024, 1024, 1 } )
           .setMipLevels( 1 )
           .setArrayLayers( 1 )
           .setSamples( vk::SampleCountFlagBits::e1 )
           .setTiling( vk::ImageTiling::eOptimal )
-	  // コピー元とStorageImageに使える
           .setUsage(
             vk::ImageUsageFlagBits::eTransferSrc |
             vk::ImageUsageFlagBits::eStorage
           )
       ),
-      // GPUから触れれば良い
       VMA_MEMORY_USAGE_GPU_ONLY
   );
   const auto dest_image = VkImage( **gct_dest_image );
@@ -253,16 +236,12 @@ int main( int argc, const char *argv[] ) {
   }
 
   {
-    // コマンドバッファを確保する
     VkCommandBufferAllocateInfo command_buffer_allocate_info;
     command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     command_buffer_allocate_info.pNext = nullptr;
-    // このコマンドプールから
     command_buffer_allocate_info.commandPool = command_pool;
-    // 直接キューにsubmitする用のやつを
     command_buffer_allocate_info.level =
       VkCommandBufferLevel::VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    // 1個
     command_buffer_allocate_info.commandBufferCount = 1u;
     VkCommandBuffer command_buffer;
     if( vkAllocateCommandBuffers(
@@ -270,7 +249,6 @@ int main( int argc, const char *argv[] ) {
       &command_buffer_allocate_info,
       &command_buffer
     ) != VK_SUCCESS ) abort();
-    // フェンスを作る
     VkFenceCreateInfo fence_create_info;
     fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fence_create_info.pNext = nullptr;
@@ -283,7 +261,6 @@ int main( int argc, const char *argv[] ) {
       &fence
     ) != VK_SUCCESS ) abort();
  
-    // コマンドバッファにコマンドの記録を開始する
     VkCommandBufferBeginInfo command_buffer_begin_info;
     command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     command_buffer_begin_info.pNext = nullptr;
@@ -391,12 +368,10 @@ int main( int argc, const char *argv[] ) {
       );
     }
     
-    // コマンドバッファにコマンドの記録を終了する
     if( vkEndCommandBuffer(
       command_buffer
     ) != VK_SUCCESS ) abort();
  
-    // コマンドバッファの内容をキューに流す
     VkSubmitInfo submit_info;
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_info.pNext = nullptr;
@@ -404,7 +379,6 @@ int main( int argc, const char *argv[] ) {
     submit_info.pWaitSemaphores = nullptr;
     submit_info.pWaitDstStageMask = nullptr;
     submit_info.commandBufferCount = 1u;
-    // このコマンドバッファの内容を流す
     submit_info.pCommandBuffers = &command_buffer;
     submit_info.signalSemaphoreCount = 0u;
     submit_info.pSignalSemaphores = nullptr;
@@ -412,30 +386,23 @@ int main( int argc, const char *argv[] ) {
       queue,
       1u,
       &submit_info,
-      // 実行し終わったらこのフェンスに通知
       fence
     ) != VK_SUCCESS ) abort();
  
-    // フェンスが完了通知を受けるのを待つ
     if( vkWaitForFences(
       device,
       1u,
-      // このフェンスを待つ
       &fence,
-      // 全部のフェンスに完了通知が来るまで待つ
       true,
-      // 1秒でタイムアウト
       1 * 1000 * 1000 * 1000
     ) != VK_SUCCESS ) abort();
 
-    // フェンスを捨てる
     vkDestroyFence(
       device,
       fence,
       nullptr
     );
 
-    // コマンドバッファを捨てる
     vkFreeCommandBuffers(
       device,
       command_pool,
@@ -563,17 +530,11 @@ int main( int argc, const char *argv[] ) {
   write_descriptor_set[ 0 ].pTexelBufferView = nullptr;
   write_descriptor_set[ 1 ].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
   write_descriptor_set[ 1 ].pNext = nullptr;
-  // このデスクリプタセットの
   write_descriptor_set[ 1 ].dstSet = descriptor_set;
-  // binding=1の
   write_descriptor_set[ 1 ].dstBinding = 1u;
-  // 0要素目から
   write_descriptor_set[ 1 ].dstArrayElement = 0u;
-  // 1個の
   write_descriptor_set[ 1 ].descriptorCount = 1u;
-  // ストレージバッファのデスクリプタを
   write_descriptor_set[ 1 ].descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-  // この内容にする
   write_descriptor_set[ 1 ].pImageInfo = &descriptor_dest_image_info;
   write_descriptor_set[ 1 ].pBufferInfo = nullptr;
   write_descriptor_set[ 1 ].pTexelBufferView = nullptr;
@@ -586,24 +547,39 @@ int main( int argc, const char *argv[] ) {
   );
   
   push_constant_t push_constant;
-  push_constant.tex_mat = glm::mat4x4(
+  push_constant.tex_mat =
+  glm::mat4x4(
+    1.f, 0.f, 0.f,  0.f,
+    0.f, 1.f, 0.f,  0.f,
+    0.f, 0.f, 1.f,  0.f,
+    0.5f, 0.5f, 0.f,  1.f
+  ) *
+  glm::mat4x4(
     std::cos( M_PI / 4 ), std::sin( M_PI / 4 ), 0.f, 0.f,
     -std::sin( M_PI / 4 ), std::cos( M_PI / 4 ), 0.f, 0.f,
     0.f, 0.f, 1.f, 0.f,
     0.f, 0.f, 0.f, 1.f
+  ) *
+  glm::mat4x4(
+    1.f, 0.f, 0.f,  0.f,
+    0.f, 1.f, 0.f,  0.f,
+    0.f, 0.f, 1.f,  0.f,
+    -0.5f, -0.5f, 0.f,  1.f
+  ) *
+  glm::mat4x4(
+    2.f, 0.f, 0.f,  0.f,
+    0.f, 2.f, 0.f,  0.f,
+    0.f, 0.f, 2.f,  0.f,
+    0.f, 0.f, 0.f,  1.f
   );
 
   {
-    // コマンドバッファを確保する
     VkCommandBufferAllocateInfo command_buffer_allocate_info;
     command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     command_buffer_allocate_info.pNext = nullptr;
-    // このコマンドプールから
     command_buffer_allocate_info.commandPool = command_pool;
-    // 直接キューにsubmitする用のやつを
     command_buffer_allocate_info.level =
       VkCommandBufferLevel::VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    // 1個
     command_buffer_allocate_info.commandBufferCount = 1u;
     VkCommandBuffer command_buffer;
     if( vkAllocateCommandBuffers(
@@ -611,7 +587,6 @@ int main( int argc, const char *argv[] ) {
       &command_buffer_allocate_info,
       &command_buffer
     ) != VK_SUCCESS ) abort();
-    // フェンスを作る
     VkFenceCreateInfo fence_create_info;
     fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fence_create_info.pNext = nullptr;
@@ -624,7 +599,6 @@ int main( int argc, const char *argv[] ) {
       &fence
     ) != VK_SUCCESS ) abort();
 
-    // コマンドバッファにコマンドの記録を開始する
     VkCommandBufferBeginInfo command_buffer_begin_info;
     command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     command_buffer_begin_info.pNext = nullptr;
@@ -635,27 +609,21 @@ int main( int argc, const char *argv[] ) {
       &command_buffer_begin_info
     ) != VK_SUCCESS ) abort();
  
-    // 以降のパイプラインの実行ではこのデスクリプタセットを使う
     VkDescriptorSet raw_descriptor_set = descriptor_set;
     vkCmdBindDescriptorSets(
       command_buffer,
-      // コンピュートパイプラインの実行に使うデスクリプタセットを
       VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE,
       pipeline_layout,
       0u,
       1u,
-      // これにする
       &raw_descriptor_set,
       0u,
       nullptr
     );
  
-    // 以降のパイプラインの実行ではこのパイプラインを使う
     vkCmdBindPipeline(
       command_buffer,
-      // コンピュートパイプラインを
       VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE,
-      // これにする
       pipeline
     );
     
@@ -668,7 +636,6 @@ int main( int argc, const char *argv[] ) {
       reinterpret_cast< const void* >( &push_constant )
     );
 
-    // コンピュートパイプラインを実行する
     vkCmdDispatch(
       command_buffer,
       64, 64, 1
@@ -728,12 +695,10 @@ int main( int argc, const char *argv[] ) {
       &image_to_buffer
     );
 
-    // コマンドバッファにコマンドの記録を終了する
     if( vkEndCommandBuffer(
       command_buffer
     ) != VK_SUCCESS ) abort();
 
-    // コマンドバッファの内容をキューに流す
     VkSubmitInfo submit_info;
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_info.pNext = nullptr;
@@ -741,7 +706,6 @@ int main( int argc, const char *argv[] ) {
     submit_info.pWaitSemaphores = nullptr;
     submit_info.pWaitDstStageMask = nullptr;
     submit_info.commandBufferCount = 1u;
-    // このコマンドバッファの内容を流す
     submit_info.pCommandBuffers = &command_buffer;
     submit_info.signalSemaphoreCount = 0u;
     submit_info.pSignalSemaphores = nullptr;
@@ -749,30 +713,23 @@ int main( int argc, const char *argv[] ) {
       queue,
       1u,
       &submit_info,
-      // 実行し終わったらこのフェンスに通知
       fence
     ) != VK_SUCCESS ) abort();
  
-    // フェンスが完了通知を受けるのを待つ
     if( vkWaitForFences(
       device,
       1u,
-      // このフェンスを待つ
       &fence,
-      // 全部のフェンスに完了通知が来るまで待つ
       true,
-      // 1秒でタイムアウト
       1 * 1000 * 1000 * 1000
     ) != VK_SUCCESS ) abort();
 
-    // フェンスを捨てる
     vkDestroyFence(
       device,
       fence,
       nullptr
     );
 
-    // コマンドバッファを捨てる
     vkFreeCommandBuffers(
       device,
       command_pool,

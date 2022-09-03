@@ -306,16 +306,18 @@ int main( int argc, const char *argv[] ) {
       vk::ImageLayout::eColorAttachmentOptimal
     );
 
-    // 頂点バッファ
+    // 三角形の頂点の座標
     const std::vector< float > vertex{
       0.f, 0.f, 0.f,
-      0.f, 1.f, 0.f,
-      1.f, 0.f, 0.f
+      1.f, 0.f, 0.f,
+      0.f, 1.f, 0.f
     };
+    // 三角形の頂点の座標をバッファに乗せる
     const auto gct_vertex_buffer = rec.load_buffer(
       allocator,
       vertex.data(),
       sizeof( float ) * vertex.size(),
+      // 用途は頂点配列
       vk::BufferUsageFlagBits::eVertexBuffer
     );
     const auto vertex_buffer = VkBuffer( **gct_vertex_buffer );
@@ -355,7 +357,7 @@ int main( int argc, const char *argv[] ) {
     begin_info.renderArea.offset.y = 0;
     begin_info.renderArea.extent.width = width;
     begin_info.renderArea.extent.height = height;
-    // フレームバッファの消去にはこの色を使う
+    // フレームバッファのクリアにはこの色を使う
     begin_info.clearValueCount = clear_values.size();
     begin_info.pClearValues = clear_values.data();
     vkCmdBeginRenderPass(
@@ -364,24 +366,19 @@ int main( int argc, const char *argv[] ) {
       VkSubpassContents::VK_SUBPASS_CONTENTS_INLINE
     );
     
-    // このパイプラインを使う
     vkCmdBindPipeline(
       command_buffer,
       VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS,
       pipeline
     );
 
-    // このデスクリプタセットを使う
     VkDescriptorSet raw_descriptor_set = descriptor_set;
     vkCmdBindDescriptorSets(
       command_buffer,
       VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS,
       pipeline_layout,
-      // set=0から
       0,
-      // 1個のデスクリプタセットを
       1,
-      // これにする
       &raw_descriptor_set,
       0,
       nullptr

@@ -90,6 +90,7 @@ int main( int argc, const char *argv[] ) {
           .set_shader_module( gct_shader )
           .set_specialization_info(
             gct::specialization_info_t< spec_t >()
+	      // ローカルグループのサイズを256x1にする
               .set_data(
                 spec_t{ 256, 1 }
               )
@@ -143,12 +144,10 @@ int main( int argc, const char *argv[] ) {
   const auto pipeline = VkPipeline( **gct_pipeline );
 
  
-  // コマンドプールを作る 
   VkCommandPoolCreateInfo command_pool_create_info;
   command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
   command_pool_create_info.pNext = nullptr;
   command_pool_create_info.flags = 0u;
-  // このキューファミリ用のやつを
   command_pool_create_info.queueFamilyIndex = queue_family_index;
   VkCommandPool command_pool;
   if( vkCreateCommandPool(
@@ -158,16 +157,12 @@ int main( int argc, const char *argv[] ) {
     &command_pool
   ) != VK_SUCCESS ) abort();
 
-  // コマンドバッファを確保する
   VkCommandBufferAllocateInfo command_buffer_allocate_info;
   command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   command_buffer_allocate_info.pNext = nullptr;
-  // このコマンドプールから
   command_buffer_allocate_info.commandPool = command_pool;
-  // 直接キューにsubmitする用のやつを
   command_buffer_allocate_info.level =
     VkCommandBufferLevel::VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  // 1個
   command_buffer_allocate_info.commandBufferCount = 1u;
   VkCommandBuffer command_buffer;
   if( vkAllocateCommandBuffers(
@@ -175,7 +170,6 @@ int main( int argc, const char *argv[] ) {
     &command_buffer_allocate_info,
     &command_buffer
   ) != VK_SUCCESS ) abort();
-  // フェンスを作る
   VkFenceCreateInfo fence_create_info;
   fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
   fence_create_info.pNext = nullptr;
@@ -188,7 +182,6 @@ int main( int argc, const char *argv[] ) {
     &fence
   ) != VK_SUCCESS ) abort();
 
-  // コマンドバッファにコマンドの記録を開始する
   VkCommandBufferBeginInfo command_buffer_begin_info;
   command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   command_buffer_begin_info.pNext = nullptr;
@@ -199,42 +192,34 @@ int main( int argc, const char *argv[] ) {
     &command_buffer_begin_info
   ) != VK_SUCCESS ) abort();
 
-  // 以降のパイプラインの実行ではこのデスクリプタセットを使う
   VkDescriptorSet raw_descriptor_set = descriptor_set;
   vkCmdBindDescriptorSets(
     command_buffer,
-    // コンピュートパイプラインの実行に使うデスクリプタセットを
     VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE,
     pipeline_layout,
     0u,
     1u,
-    // これにする
     &raw_descriptor_set,
     0u,
     nullptr
   );
 
-  // 以降のパイプラインの実行ではこのパイプラインを使う
   vkCmdBindPipeline(
     command_buffer,
-    // コンピュートパイプラインを
     VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE,
-    // これにする
     pipeline
   );
 
-  // コンピュートパイプラインを実行する
+  // 256個の値に対して実行する
   vkCmdDispatch(
     command_buffer,
     1, 1, 1
   );
 
-  // コマンドバッファにコマンドの記録を終了する
   if( vkEndCommandBuffer(
     command_buffer
   ) != VK_SUCCESS ) abort();
 
-  // コマンドバッファの内容をキューに流す
   VkSubmitInfo submit_info;
   submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   submit_info.pNext = nullptr;
@@ -242,7 +227,6 @@ int main( int argc, const char *argv[] ) {
   submit_info.pWaitSemaphores = nullptr;
   submit_info.pWaitDstStageMask = nullptr;
   submit_info.commandBufferCount = 1u;
-  // このコマンドバッファの内容を流す
   submit_info.pCommandBuffers = &command_buffer;
   submit_info.signalSemaphoreCount = 0u;
   submit_info.pSignalSemaphores = nullptr;
@@ -250,30 +234,23 @@ int main( int argc, const char *argv[] ) {
     queue,
     1u,
     &submit_info,
-    // 実行し終わったらこのフェンスに通知
     fence
   ) != VK_SUCCESS ) abort();
 
-  // フェンスが完了通知を受けるのを待つ
   if( vkWaitForFences(
     device,
     1u,
-    // このフェンスを待つ
     &fence,
-    // 全部のフェンスに完了通知が来るまで待つ
     true,
-    // 1秒でタイムアウト
     1 * 1000 * 1000 * 1000
   ) != VK_SUCCESS ) abort();
 
-  // フェンスを捨てる
   vkDestroyFence(
     device,
     fence,
     nullptr
   );
 
-  // コマンドバッファを捨てる
   vkFreeCommandBuffers(
     device,
     command_pool,
@@ -281,7 +258,6 @@ int main( int argc, const char *argv[] ) {
     &command_buffer
   );
 
-  // コマンドプールを捨てる
   vkDestroyCommandPool(
     device,
     command_pool,

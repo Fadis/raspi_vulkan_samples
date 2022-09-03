@@ -47,12 +47,14 @@ int main( int argc, const char *argv[] ) {
   const std::uint32_t height = 1024; 
   Display *display;
   
+  // Xサーバのアドレスが環境変数にセットされていなかったら諦める  
   const char *display_envar = getenv( "DISPLAY" );
   if( display_envar == NULL || display_envar[0] == '\0') {
     std::cout << "環境変数DISPLAYがセットされていない為、Xサーバに接続できません" << std::endl;
     std::abort();
   }
 
+  // Xサーバに接続する
   int scr;
   const auto connection = xcb_connect( NULL, &scr );
   const auto xcb_connection_error = xcb_connection_has_error( connection );
@@ -61,17 +63,21 @@ int main( int argc, const char *argv[] ) {
     std::cout << "指定されたXサーバ " << display_envar << " と通信できません" << std::endl;
     std::abort();
   }
+  // 画面を選ぶ(デュアルディスプレイだと複薄あるかもしれない)
   const auto setup = xcb_get_setup( connection );
   auto iter = xcb_setup_roots_iterator( setup );
   while( scr-- > 0 ) xcb_screen_next( &iter );
 
   const auto screen = iter.data;
 
+  // ウィンドウのIDを作る
   const xcb_window_t xcb_window = xcb_generate_id( connection );
 
+  // ウィンドウを作る
   std::uint32_t value_mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
   std::uint32_t value_list[32];
   value_list[0] = screen->black_pixel;
+  // キー入力のイベントを受け取るようにする
   value_list[1] = XCB_EVENT_MASK_KEY_RELEASE | XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY;
   xcb_create_window(
     connection,
@@ -89,53 +95,12 @@ int main( int argc, const char *argv[] ) {
     value_list
   );
 
-  /* Magic code that will send notification when window is destroyed */
-  /*
-  const auto cookie = xcb_intern_atom(
-    connection,
-    1,
-    12,
-    "WM_PROTOCOLS"
-  );
-
-  const auto reply = xcb_intern_atom_reply(
-    connection,
-    cookie,
-    0
-  );
-
-  const auto cookie2 = xcb_intern_atom(
-    connection,
-    0,
-    16,
-    "WM_DELETE_WINDOW"
-  );
-
-  const auto atom_wm_delete_window = xcb_intern_atom_reply(
-    connection,
-    cookie2,
-    0
-  );
-
-  xcb_change_property(
-    connection,
-    XCB_PROP_MODE_REPLACE,
-    xcb_window,
-    (*reply).atom,
-    4,
-    32,
-    1,
-    reinterpret_cast< void* >( (*atom_wm_delete_window).atom )
-  );
-  free( reply );
-  */
   xcb_map_window(
     connection,
     xcb_window
   );
 
-  // Force the x/y coordinates to 100,100 results are identical in consecutive
-  // runs
+  // ウィンドウを適当な位置に移動させる
   const uint32_t coords[] = {100, 100};
   xcb_configure_window(
     connection,
@@ -144,15 +109,18 @@ int main( int argc, const char *argv[] ) {
     coords
   );
   
+  // ここまでの内容をXサーバに反映させる
   xcb_flush( connection );
  
   { 
+    // libxcbのウィンドウからサーフェスを作る
     const auto surface = instance.createXcbSurfaceKHRUnique(
       vk::XcbSurfaceCreateInfoKHR()
         .setConnection( connection )
         .setWindow( xcb_window )
     );
  
+    // この物理デバイスからサーフェスに描けるかどうか調べる
     const auto supported = physical_device.getSurfaceSupportKHR(
       0,
       *surface
@@ -166,6 +134,7 @@ int main( int argc, const char *argv[] ) {
       std::abort();
     }
  
+    // この物理デバイスからサーフェスに描く為にサーフェスに送るイメージの形式を調べる
     const auto surface_capabilities = physical_device.getSurfaceCapabilitiesKHR(
       *surface
     );
@@ -173,6 +142,7 @@ int main( int argc, const char *argv[] ) {
     std::cout << "Surface Capabilities" << std::endl;
     std::cout << nlohmann::json( surface_capabilities ).dump( 2 ) << std::endl;
 
+  // この物理デバイスからサーフェスに描く場合に使えるピクセルのフォーマットを調べる
     const auto surface_formats = physical_device.getSurfaceFormatsKHR(
       *surface
     );
@@ -180,6 +150,7 @@ int main( int argc, const char *argv[] ) {
     std::cout << "Surface Formats" << std::endl;
     std::cout << nlohmann::json( surface_formats ).dump( 2 ) << std::endl;
 
+    // 1/60秒毎にXサーバからイベントを受け取り、キーボードのqが押されていたら終了させる
     bool close_app = false;
     while( !close_app ) {
       const auto begin_time = std::chrono::high_resolution_clock::now();
@@ -202,7 +173,11 @@ int main( int argc, const char *argv[] ) {
       }
     }
   }
+  
+  // ウィンドウを捨てる
   xcb_destroy_window( connection, xcb_window );
+  
+  // Xサーバとの接続を切る
   xcb_disconnect( connection );
 }
 

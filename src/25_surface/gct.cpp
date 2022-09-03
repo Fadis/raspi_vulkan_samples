@@ -15,7 +15,10 @@
 
 int main( int argc, const char *argv[] ) {
 
+  // glfwを初期化する
   gct::glfw::get();
+  
+  // このプラットフォームでサーフェスを使う為に必要な拡張を取得する
   std::uint32_t required_extension_count = 0u;
   const char **required_extensions_begin = glfwGetRequiredInstanceExtensions( &required_extension_count );
   const auto required_extensions_end = std::next( required_extensions_begin, required_extension_count );
@@ -50,7 +53,8 @@ int main( int argc, const char *argv[] ) {
 
   std::uint32_t width = 1024; 
   std::uint32_t height = 1024; 
-  
+ 
+  // ウィンドウを作る 
   gct::glfw_window window( width, height, argc ? argv[ 0 ] : "my_application", false );
   bool close_app = false;
   window.set_on_closed( [&]( auto & ) { close_app = true; } );

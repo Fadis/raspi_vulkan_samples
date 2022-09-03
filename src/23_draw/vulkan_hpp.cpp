@@ -304,16 +304,18 @@ int main( int argc, const char *argv[] ) {
       vk::ImageLayout::eColorAttachmentOptimal
     );
 
-    // 頂点バッファ
+    // 三角形の頂点の座標
     const std::vector< float > vertex{
       0.f, 0.f, 0.f,
-      0.f, 1.f, 0.f,
-      1.f, 0.f, 0.f
+      1.f, 0.f, 0.f,
+      0.f, 1.f, 0.f
     };
+    // 三角形の頂点の座標をバッファに乗せる
     const auto gct_vertex_buffer = rec.load_buffer(
       allocator,
       vertex.data(),
       sizeof( float ) * vertex.size(),
+      // 用途は頂点配列
       vk::BufferUsageFlagBits::eVertexBuffer
     );
     const auto vertex_buffer = **gct_vertex_buffer;
@@ -358,19 +360,15 @@ int main( int argc, const char *argv[] ) {
       vk::SubpassContents::eInline
     );
 
-    // このパイプラインを使う
     command_buffer.bindPipeline(
       vk::PipelineBindPoint::eGraphics,
       pipeline
     );
 
-    // このデスクリプタセットを使う
     command_buffer.bindDescriptorSets(
       vk::PipelineBindPoint::eGraphics,
       pipeline_layout,
-      // set=0デスクリプタセットを
       0,
-      // これにする
       descriptor_set,
       {}
     );

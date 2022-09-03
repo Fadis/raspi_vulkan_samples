@@ -125,7 +125,6 @@ int main( int argc, const char *argv[] ) {
   const auto pipeline_layout = **gct_pipeline_layout;
   const auto command_pool = **gct_command_pool;
 
-  // パイプラインを作る
   const auto gct_pipeline = gct_pipeline_cache->get_pipeline(
     gct::compute_pipeline_create_info_t()
       .set_stage(
@@ -144,80 +143,64 @@ int main( int argc, const char *argv[] ) {
   );
   const auto pipeline = **gct_pipeline;
 
-  // 入力用のバッファを作る
   const auto gct_src_buffer = gct_allocator->create_buffer(
     gct::buffer_create_info_t()
       .set_basic(
         vk::BufferCreateInfo()
-	  // 1024x1024ピクセル並べられる大きさの
           .setSize( 1024u * 1024u * 4u )
-	  // コピー元に使える
           .setUsage( vk::BufferUsageFlagBits::eTransferSrc )
       ),
-    // CPUからGPUに送るのに適した
     VMA_MEMORY_USAGE_CPU_TO_GPU
   );
   const auto src_buffer = **gct_src_buffer;
 
-  // 入力用のイメージを作る
   auto gct_src_image = gct_allocator->create_image(
     gct::image_create_info_t()
       .set_basic(
         vk::ImageCreateInfo()
           .setImageType( vk::ImageType::e2D )
-          .setFormat( vk::Format::eR8G8B8A8Srgb )
-	  // 1024x1024の
+          .setFormat( vk::Format::eR8G8B8A8Unorm )
           .setExtent( { 1024, 1024, 1 } )
           .setMipLevels( 1 )
           .setArrayLayers( 1 )
           .setSamples( vk::SampleCountFlagBits::e1 )
           .setTiling( vk::ImageTiling::eOptimal )
-	  // コピー先とテクスチャに使える
           .setUsage(
             vk::ImageUsageFlagBits::eTransferDst |
             vk::ImageUsageFlagBits::eSampled
           )
       ),
-      // GPUから触れれば良い
       VMA_MEMORY_USAGE_GPU_ONLY
   );
   const auto src_image = **gct_src_image;
 
-  // 出力用のバッファを作る
   const auto gct_dest_buffer = gct_allocator->create_buffer(
     gct::buffer_create_info_t()
       .set_basic(
         vk::BufferCreateInfo()
-	  // 1024x1024ピクセル並べられる大きさの
           .setSize( 1024u * 1024u * 4u )
-	  // コピー先に使える
           .setUsage( vk::BufferUsageFlagBits::eTransferDst )
       ),
-    // GPUからCPUに送るのに適した
     VMA_MEMORY_USAGE_GPU_TO_CPU
   );
   const auto dest_buffer = **gct_dest_buffer;
 
-  // 出力用のイメージを作る
   auto gct_dest_image = gct_allocator->create_image(
     gct::image_create_info_t()
       .set_basic(
         vk::ImageCreateInfo()
           .setImageType( vk::ImageType::e2D )
-          .setFormat( vk::Format::eR8G8B8A8Srgb )
-	  // 1024x1024の
+          .setFormat( vk::Format::eR8G8B8A8Unorm )
           .setExtent( { 1024, 1024, 1 } )
           .setMipLevels( 1 )
           .setArrayLayers( 1 )
           .setSamples( vk::SampleCountFlagBits::e1 )
           .setTiling( vk::ImageTiling::eOptimal )
-	  // コピー元とStorageImageに使える
           .setUsage(
             vk::ImageUsageFlagBits::eTransferSrc |
             vk::ImageUsageFlagBits::eStorage
           )
       ),
-      // GPUから触れれば良い
       VMA_MEMORY_USAGE_GPU_ONLY
   );
   const auto dest_image = **gct_dest_image;
@@ -254,23 +237,17 @@ int main( int argc, const char *argv[] ) {
   }
 
   {
-    // コマンドバッファを確保する
     auto command_buffers = device.allocateCommandBuffersUnique(
       vk::CommandBufferAllocateInfo()
-        // このコマンドプールから
         .setCommandPool( command_pool )
-        // 直接キューにsubmitする用のやつを
         .setLevel( vk::CommandBufferLevel::ePrimary )
-        // 1個
         .setCommandBufferCount( 1u )
     );
     const auto command_buffer = std::move( command_buffers[ 0 ] );
-    // フェンスを作る
     const auto fence = device.createFenceUnique(
       vk::FenceCreateInfo()
     );
     
-    // コマンドバッファにコマンドの記録を開始する
     command_buffer->begin(
       vk::CommandBufferBeginInfo()
     );
@@ -299,7 +276,6 @@ int main( int argc, const char *argv[] ) {
       );
     }
       
-    // 入力イメージの内容を書く
     command_buffer->copyBufferToImage(
       src_buffer,
       src_image,
@@ -322,7 +298,6 @@ int main( int argc, const char *argv[] ) {
       }
     );
 
-    // イメージのレイアウトを不定から転送先に変更
     command_buffer->pipelineBarrier(
       vk::PipelineStageFlagBits::eTransfer,
       vk::PipelineStageFlagBits::eComputeShader,
@@ -357,53 +332,38 @@ int main( int argc, const char *argv[] ) {
       }
     );
     
-    // コマンドバッファにコマンドの記録を終了する
     command_buffer->end();
 
-    // コマンドバッファの内容をキューに流す
     queue.submit(
       {
         vk::SubmitInfo()
           .setCommandBufferCount( 1u )
           .setPCommandBuffers( &*command_buffer )
       },
-      // 実行し終わったらこのフェンスに通知
       *fence
     );
  
-    // フェンスが完了通知を受けるのを待つ
     if( device.waitForFences(
       {
-        // このフェンスを待つ
         *fence
       },
-      // 全部のフェンスに完了通知が来るまで待つ
       true,
-      // 1秒でタイムアウト
       1*1000*1000*1000
     ) != vk::Result::eSuccess ) abort();
   }
 
-  // 入力イメージのイメージビューを作る
   auto src_view =
     device.createImageViewUnique(
       vk::ImageViewCreateInfo()
-        //このイメージの
         .setImage( src_image )
         .setSubresourceRange(
           vk::ImageSubresourceRange()
-            // イメージの色のうち
             .setAspectMask( vk::ImageAspectFlagBits::eColor )
-            // 先頭から1つのミップマップ
             .setLevelCount( 1 )
-            // 先頭から1つのレイヤー
             .setLayerCount( 1 )
         )
-        // このフォーマットで
-        .setFormat( vk::Format::eR8G8B8A8Srgb )
-        // 2次元のイメージを指している
+        .setFormat( vk::Format::eR8G8B8A8Unorm )
         .setViewType( vk::ImageViewType::e2D )
-        // RGBAの値の順序は入れ替えない
         .setComponents(
           vk::ComponentMapping()
             .setR( vk::ComponentSwizzle::eR )
@@ -412,26 +372,18 @@ int main( int argc, const char *argv[] ) {
             .setA( vk::ComponentSwizzle::eA )
         )
     );
-  // 出力イメージのイメージビューを作る
   auto dest_view =
     device.createImageViewUnique(
       vk::ImageViewCreateInfo()
-        // このイメージの
         .setImage( dest_image )
         .setSubresourceRange(
           vk::ImageSubresourceRange()
-            // イメージの色のうち
             .setAspectMask( vk::ImageAspectFlagBits::eColor )
-            // 先頭から1つのミップマップ
             .setLevelCount( 1 )
-            // 先頭から1つのレイヤー
             .setLayerCount( 1 )
         )
-        // このフォーマットで
-        .setFormat( vk::Format::eR8G8B8A8Srgb )
-        // 2次元のイメージを指している
+        .setFormat( vk::Format::eR8G8B8A8Unorm )
         .setViewType( vk::ImageViewType::e2D )
-        // RGBAの値の順序は入れ替えない
         .setComponents(
           vk::ComponentMapping()
             .setR( vk::ComponentSwizzle::eR )
@@ -476,13 +428,14 @@ int main( int argc, const char *argv[] ) {
   // 更新するデスクリプタの情報
   const auto src_descriptor_image_info =
     vk::DescriptorImageInfo()
-      // デスクリプタをこのイメージビューにする
+      // デスクリプタにこのイメージビューを結びつける
       .setImageView( *src_view )
+      // デスクリプタにこのサンプラーを結びつける
       .setSampler( *sampler )
+      // デスクリプタの種類はイメージ付きサンプラー
       .setImageLayout( vk::ImageLayout::eShaderReadOnlyOptimal );
   const auto dest_descriptor_image_info =
     vk::DescriptorImageInfo()
-      // デスクリプタをこのイメージビューにする
       .setImageView( *dest_view )
       .setImageLayout( vk::ImageLayout::eGeneral );
 
@@ -501,15 +454,10 @@ int main( int argc, const char *argv[] ) {
         // この内容にする
         .setPImageInfo( &src_descriptor_image_info ),
       vk::WriteDescriptorSet()
-        // このデスクリプタセットの
         .setDstSet( descriptor_set )
-        // binding=0の
         .setDstBinding( 1 )
-        // 先頭から1個の
         .setDescriptorCount( 1u )
-        // ストレージバッファのデスクリプタを
         .setDescriptorType( vk::DescriptorType::eStorageImage )
-        // この内容にする
         .setPImageInfo( &dest_descriptor_image_info )
     },
     {}
@@ -517,51 +465,58 @@ int main( int argc, const char *argv[] ) {
 
 
   push_constant_t push_constant;
-  push_constant.tex_mat = glm::mat4x4(
+  push_constant.tex_mat =
+  glm::mat4x4(
+    1.f, 0.f, 0.f,  0.f,
+    0.f, 1.f, 0.f,  0.f,
+    0.f, 0.f, 1.f,  0.f,
+    0.5f, 0.5f, 0.f,  1.f
+  ) *
+  glm::mat4x4(
     std::cos( M_PI / 4 ), std::sin( M_PI / 4 ), 0.f, 0.f,
     -std::sin( M_PI / 4 ), std::cos( M_PI / 4 ), 0.f, 0.f,
     0.f, 0.f, 1.f, 0.f,
     0.f, 0.f, 0.f, 1.f
+  ) *
+  glm::mat4x4(
+    1.f, 0.f, 0.f,  0.f,
+    0.f, 1.f, 0.f,  0.f,
+    0.f, 0.f, 1.f,  0.f,
+    -0.5f, -0.5f, 0.f,  1.f
+  ) *
+  glm::mat4x4(
+    2.f, 0.f, 0.f,  0.f,
+    0.f, 2.f, 0.f,  0.f,
+    0.f, 0.f, 2.f,  0.f,
+    0.f, 0.f, 0.f,  1.f
   );
 
   {
-    // コマンドバッファを確保する
     auto command_buffers = device.allocateCommandBuffersUnique(
       vk::CommandBufferAllocateInfo()
-        // このコマンドプールから
         .setCommandPool( command_pool )
-        // 直接キューにsubmitする用のやつを
         .setLevel( vk::CommandBufferLevel::ePrimary )
-        // 1個
         .setCommandBufferCount( 1u )
     );
     const auto command_buffer = std::move( command_buffers[ 0 ] );
-    // フェンスを作る
     const auto fence = device.createFenceUnique(
       vk::FenceCreateInfo()
     );
     
-    // コマンドバッファにコマンドの記録を開始する
     command_buffer->begin(
       vk::CommandBufferBeginInfo()
     );
 
-    // 以降のパイプラインの実行ではこのデスクリプタセットを使う
     command_buffer->bindDescriptorSets(
-      // コンピュートパイプラインの実行に使うデスクリプタセットを
       vk::PipelineBindPoint::eCompute,
       pipeline_layout,
       0u,
-      // これにする
       { descriptor_set },
       {}
     );
  
-    // 以降のパイプラインの実行ではこのパイプラインを使う
     command_buffer->bindPipeline(
-      // コンピュートパイプラインを
       vk::PipelineBindPoint::eCompute,
-      // これにする
       pipeline
     );
  
@@ -573,7 +528,6 @@ int main( int argc, const char *argv[] ) {
       reinterpret_cast< const void* >( &push_constant )
     );
    
-    // コンピュートパイプラインを実行する
     command_buffer->dispatch( 64, 64, 1 );
 
 
@@ -601,7 +555,6 @@ int main( int argc, const char *argv[] ) {
       );
     }
 
-    // CPUから見えるバッファに出力イメージの内容をコピー
     command_buffer->copyImageToBuffer(
       dest_image,
       vk::ImageLayout::eTransferSrcOptimal,
@@ -624,29 +577,22 @@ int main( int argc, const char *argv[] ) {
       }
     );
 
-    // コマンドバッファにコマンドの記録を終了する
     command_buffer->end();
  
-    // コマンドバッファの内容をキューに流す
     queue.submit(
       {
         vk::SubmitInfo()
           .setCommandBufferCount( 1u )
           .setPCommandBuffers( &*command_buffer )
       },
-      // 実行し終わったらこのフェンスに通知
       *fence
     );
  
-    // フェンスが完了通知を受けるのを待つ
     if( device.waitForFences(
       {
-        // このフェンスを待つ
         *fence
       },
-      // 全部のフェンスに完了通知が来るまで待つ
       true,
-      // 1秒でタイムアウト
       1*1000*1000*1000
     ) != vk::Result::eSuccess ) abort();
   }
