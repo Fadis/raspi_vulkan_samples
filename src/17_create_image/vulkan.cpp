@@ -63,7 +63,6 @@ int main( int argc, const char *argv[] ) {
   allocator_create_info.pVulkanFunctions = nullptr;
   allocator_create_info.vulkanApiVersion = 0u;
   allocator_create_info.pTypeExternalMemoryHandleTypes = nullptr;
-  allocator_create_info.pRecordSettings = nullptr;
 
   VmaAllocator allocator;
   if( vmaCreateAllocator(

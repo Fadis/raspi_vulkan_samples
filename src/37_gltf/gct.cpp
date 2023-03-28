@@ -111,13 +111,10 @@ int main( int argc, const char *argv[] ) {
 
   auto pipeline_cache = device->get_pipeline_cache();
 
-  std::vector< std::shared_ptr< gct::render_pass_t > > render_pass;
-  for( std::size_t i = 0u; i != swapchain_images.size(); ++i ) {
-    render_pass.emplace_back( device->get_render_pass(
-      gct::select_simple_surface_format( surface->get_caps().get_formats() ).basic.format,
-      vk::Format::eD16Unorm
-    ) );
-  }
+  auto render_pass = device->get_render_pass(
+    gct::select_simple_surface_format( surface->get_caps().get_formats() ).basic.format,
+    vk::Format::eD16Unorm
+  );
   VmaAllocatorCreateInfo allocator_create_info{};
   auto allocator = device->get_allocator(
     allocator_create_info
@@ -125,8 +122,20 @@ int main( int argc, const char *argv[] ) {
   
   std::vector< fb_resources_t > framebuffers;
 
+
+  const auto dynamic_descriptor_set_layout = device->get_descriptor_set_layout(
+    gct::descriptor_set_layout_create_info_t()
+      .add_binding(
+        vk::DescriptorSetLayoutBinding()
+          .setBinding( 0 )
+          .setDescriptorType( vk::DescriptorType::eUniformBuffer )
+          .setDescriptorCount( 1u )
+          .setStageFlags( vk::ShaderStageFlagBits::eVertex|vk::ShaderStageFlagBits::eFragment )
+      )
+  );
   std::vector< std::shared_ptr< gct::buffer_t > > staging_dynamic_uniform;
   std::vector< std::shared_ptr< gct::buffer_t > > dynamic_uniform;
+  std::vector< std::shared_ptr< gct::descriptor_set_t > > dynamic_descriptor_set;
   for( std::size_t i = 0u; i != swapchain_images.size(); ++i ) {
     staging_dynamic_uniform.emplace_back(
       allocator->create_buffer(
@@ -150,11 +159,37 @@ int main( int argc, const char *argv[] ) {
           VMA_MEMORY_USAGE_GPU_ONLY
        )
     );
+    dynamic_descriptor_set.push_back(
+      descriptor_pool->allocate(
+        dynamic_descriptor_set_layout
+      )   
+    );  
+    std::vector< gct::write_descriptor_set_t > updates;
+    updates.push_back(
+      gct::write_descriptor_set_t()
+        .set_basic(
+          vk::WriteDescriptorSet()
+            .setDstSet( **dynamic_descriptor_set.back() )
+            .setDstBinding( 0u )
+            .setDescriptorCount( 1u )
+            .setDescriptorType( vk::DescriptorType::eUniformBuffer )
+        )   
+        .add_buffer(
+          gct::descriptor_buffer_info_t()
+            .set_buffer( dynamic_uniform.back() )
+            .set_basic(
+              vk::DescriptorBufferInfo()
+                .setOffset( 0 ) 
+                .setRange( sizeof( gct::gltf::dynamic_uniforms_t ) ) 
+            )   
+        )   
+    );  
+    dynamic_descriptor_set.back()->update( updates );
   }
 
   for( std::size_t i = 0u; i != swapchain_images.size(); ++i ) {
     auto &image = swapchain_images[ i ];
-    auto &render_pass_ = render_pass[ i ];
+    auto &render_pass_ = render_pass;
     auto depth = allocator->create_image(
       gct::image_create_info_t()
         .set_basic(
@@ -184,7 +219,7 @@ int main( int argc, const char *argv[] ) {
         gct::render_pass_begin_info_t()
           .set_basic(
             vk::RenderPassBeginInfo()
-              .setRenderPass( **render_pass[ i ] )
+              .setRenderPass( **render_pass )
               .setFramebuffer( **framebuffer )
               .setRenderArea( vk::Rect2D( vk::Offset2D(0, 0), vk::Extent2D((uint32_t)width, (uint32_t)height) ) )
           )
@@ -306,16 +341,17 @@ int main( int argc, const char *argv[] ) {
       rec,
       allocator,
       descriptor_pool,
-      render_pass,
-      CMAKE_CURRENT_BINARY_DIR "/shaders",
+      { render_pass },
+      { CMAKE_CURRENT_BINARY_DIR "/shaders" },
       0,
       framebuffers.size(),
       0,
-      dynamic_uniform,
       float( width ) / float( height ),
       false,
-      env_descriptor_set_layout,
-      env_descriptor_set
+      {
+        dynamic_descriptor_set_layout,
+        env_descriptor_set_layout
+      }
     );
   }
   gcb->execute(
@@ -432,8 +468,11 @@ int main( int argc, const char *argv[] ) {
         doc.node,
         doc.mesh,
         doc.buffer,
-        image_index,
-        0u
+        0u,
+        {
+          dynamic_descriptor_set[ image_index ],
+          env_descriptor_set,
+        }
       );
     }
     sync.command_buffer->execute(
