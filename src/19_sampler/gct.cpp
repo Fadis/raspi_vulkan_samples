@@ -168,7 +168,7 @@ int main( int argc, const char *argv[] ) {
                 .setBaseArrayLayer( 0 )
                 .setLayerCount( 1 )
             )
-            .setViewType( gct::to_image_view_type( src_image->get_props().get_basic().imageType ) )
+            .setViewType( gct::to_image_view_type( src_image->get_props().get_basic().imageType, src_image->get_props().get_basic().arrayLayers ) )
         )
         .rebuild_chain()
     );
@@ -185,7 +185,7 @@ int main( int argc, const char *argv[] ) {
                 .setBaseArrayLayer( 0 )
                 .setLayerCount( 1 )
             )
-            .setViewType( gct::to_image_view_type( dest_image->get_props().get_basic().imageType ) )
+            .setViewType( gct::to_image_view_type( dest_image->get_props().get_basic().imageType, dest_image->get_props().get_basic().arrayLayers ) )
         )
         .rebuild_chain()
     );
