@@ -22,6 +22,10 @@
 #include <gct/wait_for_sync.hpp>
 #include <gct/present_info.hpp>
 #include <gct/gltf.hpp>
+#include <gct/command_buffer.hpp>
+#include <gct/command_pool.hpp>
+#include <gct/framebuffer.hpp>
+#include <gct/render_pass.hpp>
 
 struct fb_resources_t {
   std::shared_ptr< gct::image_t > color;

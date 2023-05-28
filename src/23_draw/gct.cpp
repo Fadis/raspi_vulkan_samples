@@ -17,6 +17,11 @@
 #include <gct/graphics_pipeline.hpp>
 #include <gct/pipeline_layout.hpp>
 #include <gct/render_pass_begin_info.hpp>
+#include <gct/command_buffer.hpp>
+#include <gct/command_pool.hpp>
+#include <gct/framebuffer.hpp>
+#include <gct/render_pass.hpp>
+#include <gct/descriptor_pool.hpp>
 
 int main( int argc, const char *argv[] ) {
   const std::shared_ptr< gct::instance_t > instance(

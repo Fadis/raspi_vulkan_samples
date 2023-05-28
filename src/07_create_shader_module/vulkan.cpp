@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iterator>
 #include <vector>
+#include <nlohmann/json.hpp>
 #include <gct/instance.hpp>
 #include <gct/device.hpp>
 #include <gct/device_create_info.hpp>

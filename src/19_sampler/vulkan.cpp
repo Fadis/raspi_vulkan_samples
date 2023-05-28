@@ -21,6 +21,8 @@
 #include <gct/compute_pipeline_create_info.hpp>
 #include <gct/compute_pipeline.hpp>
 #include <gct/write_descriptor_set.hpp>
+#include <gct/command_buffer.hpp>
+#include <gct/command_pool.hpp>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/version.h>
 

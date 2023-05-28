@@ -10,6 +10,7 @@
 #include <gct/device.hpp>
 #include <gct/device_create_info.hpp>
 #include <gct/glfw.hpp>
+#include <gct/swapchain.hpp>
 
 int main( int argc, const char *argv[] ) {
 

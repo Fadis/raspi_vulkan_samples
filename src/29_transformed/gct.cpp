@@ -36,6 +36,10 @@
 #include <gct/vertex_attributes.hpp>
 #include <gct/render_pass_begin_info.hpp>
 #include <gct/primitive.hpp>
+#include <gct/command_buffer.hpp>
+#include <gct/command_pool.hpp>
+#include <gct/framebuffer.hpp>
+#include <gct/render_pass.hpp>
 
 // スワップチェーンのイメージ毎に持つリソース
 struct fb_resources_t {

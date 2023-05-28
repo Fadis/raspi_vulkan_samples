@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.hpp>
 #include <gct/instance.hpp>
 #include <gct/device.hpp>
+#include <nlohmann/json.hpp>
 #include <gct/physical_device.hpp>
 #include <gct/device_create_info.hpp>
 #include <gct/instance_create_info.hpp>

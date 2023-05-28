@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <vulkan/vulkan.h>
+#include <nlohmann/json.hpp>
 #include <gct/instance.hpp>
 #include <gct/device.hpp>
 #include <gct/physical_device.hpp>

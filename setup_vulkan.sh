@@ -36,7 +36,7 @@ fi
  
 echo "依存するRaspberry Pi OSのパッケージをインストールします。(sudoするためにパスワードを求められます)"
 sudo apt update
-sudo apt install python3-mako libxshmfence-dev libxxf86vm-dev build-essential x11proto-randr-dev x11proto-present-dev libclc-dev libelf-dev libva-dev libx11-xcb-dev libxext-dev libxdamage-dev libxfixes-dev x11proto-dri3-dev libx11-dev libxcb-glx0-dev libssl-dev libgnutls28-dev x11proto-dri2-dev libffi-dev x11proto-xext-dev libxcb1-dev libxcb-*dev xutils-dev libpthread-stubs0-dev libpciaccess-dev libxcb-cursor-dev libxkbcommon-dev xutils-dev libxcb-xinerama0-dev libxinerama-dev libxcursor-dev libxcb-randr0-dev libxrandr-dev cmake meson libzstd-dev bison flex llvm llvm-dev clang libboost-all-dev nlohmann-json3-dev clang-format libxi-dev libopenimageio-dev catch2 libopenexr-dev libglm-dev google-mock wget tar xz-utils ninja-build || die "依存するパッケージをインストールできません。"
+sudo apt install python3-mako libxshmfence-dev libxxf86vm-dev build-essential x11proto-randr-dev x11proto-present-dev libclc-dev libelf-dev libva-dev libx11-xcb-dev libxext-dev libxdamage-dev libxfixes-dev x11proto-dri3-dev libx11-dev libxcb-glx0-dev libssl-dev libgnutls28-dev x11proto-dri2-dev libffi-dev x11proto-xext-dev libxcb1-dev libxcb-*dev xutils-dev libpthread-stubs0-dev libpciaccess-dev libxcb-cursor-dev libxkbcommon-dev xutils-dev libxcb-xinerama0-dev libxinerama-dev libxcursor-dev libxcb-randr0-dev libxrandr-dev cmake meson libzstd-dev bison flex llvm llvm-dev clang libboost-all-dev nlohmann-json3-dev clang-format libxi-dev libopenimageio-dev catch2 libopenexr-dev libglm-dev google-mock wget tar xz-utils ninja-build libharfbuzz-dev libinput-dev libsystemd-dev libsdbus-c++-dev || die "依存するパッケージをインストールできません。"
 
 echo "Vulkan-Loaderをcloneします。"
 if [ ! -e "Vulkan-Loader" ]
@@ -205,6 +205,7 @@ cd "${BUILD_DIR}/binary/glfw"
 cmake ${BUILD_DIR}/glfw-3.3.8 -DCMAKE_INSTALL_PREFIX=${DEST} -DCMAKE_BUILD_TYPE=Release -DGLFW_USE_WAYLAND=OFF || die "glfwのビルドの準備が失敗しました。"
 make || die "glfwをビルドできません。"
 make install || die "glfwをインストールできません。"
+ln -s ${DEST}/lib/libglfw3.a ${DEST}/lib/libglfw.a
 cd ../../
 
 echo "hdmapをcloneします。"
