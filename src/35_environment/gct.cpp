@@ -234,25 +234,25 @@ int main( int argc, const char *argv[] ) {
         allocator,
         CMAKE_CURRENT_SOURCE_DIR "/globe_color.png",
         vk::ImageUsageFlagBits::eSampled,
-        false, true
+        false, gct::integer_attribute_t::srgb
       );
       normal_image = recorder.load_image(
         allocator,
         CMAKE_CURRENT_SOURCE_DIR "/globe_normal.png",
         vk::ImageUsageFlagBits::eSampled,
-        false, false
+        false, gct::integer_attribute_t::normalized
       );
       roughness_image = recorder.load_image(
         allocator,
         CMAKE_CURRENT_SOURCE_DIR "/globe_roughness.png",
         vk::ImageUsageFlagBits::eSampled,
-        false, false
+        false, gct::integer_attribute_t::normalized
       );
       environment_image = recorder.load_image(
         allocator,
         CMAKE_CURRENT_SOURCE_DIR "/environment.png",
         vk::ImageUsageFlagBits::eSampled,
-        true, true
+        true, gct::integer_attribute_t::srgb
       );
       recorder.barrier(
         vk::AccessFlagBits::eTransferWrite,

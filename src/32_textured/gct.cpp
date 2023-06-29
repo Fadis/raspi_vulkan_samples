@@ -230,7 +230,7 @@ int main( int argc, const char *argv[] ) {
         allocator,
         CMAKE_CURRENT_SOURCE_DIR "/globe_color.png",
         vk::ImageUsageFlagBits::eSampled,
-        false, true
+        false, gct::integer_attribute_t::srgb
       );
       recorder.barrier(
         vk::AccessFlagBits::eTransferWrite,
